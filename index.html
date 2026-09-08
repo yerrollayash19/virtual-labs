@@ -7,8 +7,8 @@
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --border: rgba(186, 230, 253, 0.6);
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --border: rgba(186, 230, 253, 0.8);
       --text-main: #0f172a;
       --text-muted: #475569;
       --primary: #0284c7;
@@ -18,87 +18,87 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     html { scroll-behavior: smooth; }
-    body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 3rem; }
+    body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 3rem; position: relative; overflow-x: hidden; }
+
+    /* Animated Physics Background Canvas */
+    #physics-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.45; }
 
     /* Navigation Bar */
-    nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; }
-    .logo { display: flex; align-items: center; text-decoration: none; }
-    .logo img { height: 42px; width: auto; border-radius: 8px; object-fit: contain; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; position: relative; z-index: 10; }
+    .logo img { height: 44px; width: auto; border-radius: 8px; object-fit: contain; transition: transform 0.3s; }
+    .logo img:hover { transform: scale(1.03); }
     .nav-links { display: flex; gap: 2rem; list-style: none; }
-    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; transition: 0.2s; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; transition: color 0.2s; }
     .nav-links a:hover { color: var(--primary); }
 
     /* Hero Section */
-    .hero { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 800px; margin: 0 auto; }
-    .hero h1 { font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
+    .hero { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 800px; margin: 0 auto; position: relative; z-index: 10; }
+    .hero h1 { font-size: 2.6rem; font-weight: 800; color: var(--text-main); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
     .hero h1 span { color: var(--primary); display: block; }
     .hero p { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 1.5rem; }
 
     /* Search & Controls */
-    .controls { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem; }
-    .search-bar { padding: 0.8rem 1.25rem; width: 100%; max-width: 480px; border-radius: 50px; border: 1px solid var(--border); background: #ffffff; color: var(--text-main); font-size: 0.95rem; outline: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); transition: 0.2s; }
-    .search-bar:focus { border-color: var(--primary); box-shadow: 0 4px 16px rgba(2, 132, 199, 0.15); }
+    .controls { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem; position: relative; z-index: 10; }
+    .search-bar { padding: 0.8rem 1.25rem; width: 100%; max-width: 480px; border-radius: 50px; border: 1px solid var(--border); background: #ffffff; color: var(--text-main); font-size: 0.95rem; outline: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
+    .search-bar:focus { border-color: var(--primary); box-shadow: 0 4px 16px rgba(2, 132, 199, 0.2); }
 
-    /* Category Filter Tabs */
+    /* Filter Tabs */
     .tabs-container { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
-    .tab-btn { background: #ffffff; border: 1px solid var(--border); color: var(--text-muted); padding: 0.5rem 1.25rem; border-radius: 50px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: 0.2s; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); }
-    .tab-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .tab-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
+    .tab-btn { background: #ffffff; border: 1px solid var(--border); color: var(--text-muted); padding: 0.5rem 1.25rem; border-radius: 50px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: all 0.25s ease; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); }
+    .tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+    .tab-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
 
     /* Cards Grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
-    .card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); transition: transform 0.2s, box-shadow 0.2s; }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px -5px rgba(2, 132, 199, 0.1); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 20px 30px -10px rgba(2, 132, 199, 0.18); border-color: var(--primary); }
     
-    .tag { display: inline-block; background: var(--accent-tag); color: var(--primary); padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.75rem; width: fit-content; text-transform: uppercase; }
-    .card h3 { font-size: 1.1rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.4; }
+    .tag { display: inline-block; background: var(--accent-tag); color: var(--primary); padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.75rem; width: fit-content; text-transform: uppercase; }
+    .card h3 { font-size: 1.15rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.4; }
     .card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.5rem; flex-grow: 1; }
 
-    /* Buttons */
     .btn-group { display: flex; gap: 0.75rem; }
-    .btn { flex: 1; padding: 0.65rem; border-radius: 8px; text-decoration: none; text-align: center; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn { flex: 1; padding: 0.7rem; border-radius: 8px; text-decoration: none; text-align: center; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-primary { background: var(--primary); color: #ffffff; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #ffffff; border: 1px solid var(--border); color: var(--text-main); }
-    .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
+    .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
 
-    /* Footer / About / Contact Sections */
-    .info-section { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-    .info-card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-    .info-card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 0.75rem; }
-    .info-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
-    footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2.5rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 1px solid var(--border); }
+    /* About Section & Team Credits */
+    .about-section { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
+    .about-card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    .about-card h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 0.75rem; }
+    .about-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
+
+    .team-credits { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    .credit-group h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.5rem; }
+    .credit-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .credit-list li { background: #ffffff; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.88rem; font-weight: 600; color: var(--text-main); }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2.5rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 1px solid var(--border); position: relative; z-index: 10; }
   </style>
 </head>
 <body>
 
-  <!-- Navigation Bar -->
+  <!-- Background Physics Particles -->
+  <canvas id="physics-bg"></canvas>
+
   <nav>
     <a href="#" class="logo">
-      <img 
-        src="logo.png" 
-        alt="Virtual Labs Logo" 
-        onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yerrollayash19/virtual-labs/main/logo.png';"
-      >
+      <img src="logo.png" alt="Virtual Labs Logo" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yerrollayash19/virtual-labs/main/logo.png';">
     </a>
     <ul class="nav-links">
       <li><a href="#">Home</a></li>
       <li><a href="#labGrid">Experiments</a></li>
       <li><a href="#about">About</a></li>
-      <li><a href="#contact">Contact</a></li>
     </ul>
   </nav>
 
-  <!-- Hero Section -->
   <section class="hero">
     <h1>VIRTUAL LABS: <span>CLASS 12 EXPERIMENTS</span></h1>
-    <p>Explore, Simulate, and Learn: Hands-on Science, Anytime, Anywhere</p>
+    <p>Explore, Simulate, and Learn: Interactive Physics Science Previews & Experiments</p>
   </section>
 
-  <!-- Search & Category Controls -->
   <div class="controls">
     <input type="text" id="searchInput" class="search-bar" placeholder="Search experiments..." onkeyup="filterLabs()">
-    
     <div class="tabs-container">
       <button class="tab-btn active" onclick="switchTab('all', this)">All</button>
       <button class="tab-btn" onclick="switchTab('current-electricity', this)">Current Electricity</button>
@@ -108,19 +108,16 @@
     </div>
   </div>
 
-  <!-- Experiments Grid -->
   <main class="grid" id="labGrid">
 
-    <!-- CURRENT ELECTRICITY -->
     <div class="card" data-category="current-electricity" data-title="Resistivity of Wires Potential Difference Current Ohm Law Graph">
       <div>
         <span class="tag">Current Electricity</span>
         <h3>1. Wire Resistivity (V vs I Graph)</h3>
-        <p>Determine the resistivity of two/three wires by plotting a graph for potential difference versus current.</p>
+        <p>Determine resistivity of wires by plotting potential difference versus current graphs.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/wire-resistivity.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/wire-resistivity.html" download="wire-resistivity.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=wire-resistivity" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
@@ -128,11 +125,10 @@
       <div>
         <span class="tag">Current Electricity</span>
         <h3>2. Resistance using Metre Bridge</h3>
-        <p>Find the resistance of a given wire or standard resistor using a metre bridge apparatus.</p>
+        <p>Find unknown resistance using a metre bridge apparatus with Wheatstone bridge balance principles.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/meter-bridge.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/meter-bridge.html" download="meter-bridge.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=meter-bridge" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
@@ -140,24 +136,21 @@
       <div>
         <span class="tag">Current Electricity</span>
         <h3>3. Series & Parallel Combination</h3>
-        <p>Verify the laws of combination (series and parallel) of resistances using a metre bridge.</p>
+        <p>Verify equivalent resistance laws for series and parallel resistor networks using metre bridge.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/metre-bridge-combination.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/metre-bridge-combination.html" download="metre-bridge-combination.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=metre-bridge-combination" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
-    <!-- RAY OPTICS -->
     <div class="card" data-category="optics" data-title="Concave Mirror Focal Length u v Values">
       <div>
         <span class="tag">Ray Optics</span>
         <h3>4. Concave Mirror Focal Length</h3>
-        <p>Find the value of v for different values of u in case of a concave mirror and calculate its focal length.</p>
+        <p>Simulate image formation and calculate focal length by observing u and v relations.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/concave-mirror.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/concave-mirror.html" download="concave-mirror.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=concave-mirror" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
@@ -165,52 +158,59 @@
       <div>
         <span class="tag">Ray Optics</span>
         <h3>5. Convex Lens Focal Length</h3>
-        <p>Find the focal length of a convex lens by plotting graphs between u & v and between 1/u & 1/v.</p>
+        <p>Determine lens focal length using interactive u-v plots and inverse linear graph fits.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/convex-lens.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/convex-lens.html" download="convex-lens.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=convex-lens" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
-    <!-- SEMICONDUCTOR ELECTRONICS -->
     <div class="card" data-category="electronics" data-title="PN Junction Diode IV Characteristic Forward Reverse Bias">
       <div>
         <span class="tag">Electronics</span>
         <h3>6. P-N Junction Diode</h3>
-        <p>Draw the I-V characteristic curve for a p-n junction diode in forward and reverse bias.</p>
+        <p>Draw I-V characteristics for semiconductor diodes in forward and reverse bias setups.</p>
       </div>
       <div class="btn-group">
-        <a href="#" onclick="alert('P-N Junction experiment coming soon!')" class="btn btn-primary" style="opacity: 0.6;">Coming Soon</a>
-        <button class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed;" disabled>Source</button>
+        <a href="preview.html?id=pn-diode" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
-    <!-- ADDITIONAL TOOLS -->
     <div class="card" data-category="tools" data-title="Screw Gauge Micrometer Measurement Pitch Least Count">
       <div>
         <span class="tag">Additional Tools</span>
         <h3>7. Screw Gauge Tool</h3>
-        <p>Interactive 3D screw gauge tool to practice measuring wire diameter and thickness with least count precision.</p>
+        <p>3D interactive micrometer simulator for wire thickness and zero-error practice.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/screw-gauge.html" class="btn btn-primary">Start Tool</a>
-        <a href="experiments/screw-gauge.html" download="screw-gauge.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="preview.html?id=screw-gauge" class="btn btn-primary">View Preview & Start</a>
       </div>
     </div>
 
   </main>
 
-  <!-- About & Contact Section -->
-  <section class="info-section">
-    <div class="info-card" id="about">
+  <section class="about-section" id="about">
+    <div class="about-card">
       <h2>About Virtual Labs</h2>
-      <p>Virtual Labs is designed to bring interactive 3D physics simulations to Class 12 students and educators. Our mission is to make practical learning accessible anywhere without physical lab setups.</p>
-    </div>
-    
-    <div class="info-card" id="contact">
-      <h2>Contact Us</h2>
-      <p>Have questions, suggestions, or want to contribute new experiment models?<br><strong>Email:</strong> support@virtuallabs.dev<br><strong>GitHub:</strong> github.com/yerrollayash19/virtual-labs</p>
+      <p>Virtual Labs is an interactive learning platform designed for Class 12 Physics students. It bridges the gap between theoretical knowledge and practical application through interactive web simulations.</p>
+      
+      <div class="team-credits">
+        <div class="credit-group">
+          <h4>Made by</h4>
+          <ul class="credit-list">
+            <li>Yash Yerrolla</li>
+            <li>Soham Takalkar</li>
+            <li>Riyansh Upadhyay</li>
+            <li>Shawn Paul</li>
+          </ul>
+        </div>
+        <div class="credit-group">
+          <h4>Under the Guidance of</h4>
+          <ul class="credit-list">
+            <li>Mr. Manohar</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -219,32 +219,75 @@
   </footer>
 
   <script>
-    let activeCategory = 'all';
+    // Particle animation logic
+    const canvas = document.getElementById('physics-bg');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
 
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for (let i = 0; i < 35; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8
+      });
+    }
+
+    function animatePhysics() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0284c7';
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.15)';
+
+      particles.forEach((p, index) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (let j = index + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 130) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      });
+      requestAnimationFrame(animatePhysics);
+    }
+    animatePhysics();
+
+    let activeCategory = 'all';
     function switchTab(category, btnElement) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       btnElement.classList.add('active');
-      
       activeCategory = category;
       filterLabs();
     }
 
     function filterLabs() {
       const query = document.getElementById('searchInput').value.toLowerCase();
-      const cards = document.querySelectorAll('.card');
-      
-      cards.forEach(card => {
+      document.querySelectorAll('.card').forEach(card => {
         const title = card.getAttribute('data-title').toLowerCase();
         const category = card.getAttribute('data-category');
-
         const matchesSearch = title.includes(query);
         const matchesCategory = (activeCategory === 'all' || category === activeCategory);
-
-        if (matchesSearch && matchesCategory) {
-          card.style.display = "flex";
-        } else {
-          card.style.display = "none";
-        }
+        card.style.display = (matchesSearch && matchesCategory) ? "flex" : "none";
       });
     }
   </script>
