@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Virtual Physics Lab — Screw Gauge</title>
+<meta name="description" content="Interactive 3D screw gauge (micrometer) virtual physics lab — measurement & zero error." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128301;</text></svg>" />
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Tailwind (play CDN) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace'],
+        },
+        colors: {
+          labbg: '#0b1320',
+          labbg2: '#0d1b2a',
+          labpanel: '#0f1c2c',
+          labcard: '#101e30',
+          labborder: '#1f2d3d',
+          labcyan: '#22d3ee',
+          labcyan2: '#06b6d4',
+        },
+        boxShadow: {
+          glow: '0 0 24px -4px rgba(34,211,238,0.45)',
+          glowsm: '0 0 12px -2px rgba(34,211,238,0.5)',
+        },
+      },
+    },
+  };
+</script>
+
+<!-- Three.js + OrbitControls (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Lucide icons (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.js"></script>
+
+<style>
+  :root{
+    --lab-bg-0:#0b1320; --lab-bg-1:#0d1b2a; --lab-panel:#0f1c2c; --lab-card:#101e30;
+    --lab-border:#1f2d3d; --lab-cyan:#22d3ee; --lab-cyan-2:#06b6d4;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; overflow:hidden; background:var(--lab-bg-0); }
+  body{ font-family:'Inter',system-ui,sans-serif; color:#e6f1f8; -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:#25384a; border-radius:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  .glow-text{ text-shadow:0 0 12px rgba(34,211,238,0.55), 0 0 2px rgba(34,211,238,0.8); }
+  .lab-gradient-bg, body{ background: radial-gradient(1200px 700px at 15% -10%, rgba(34,211,238,0.08), transparent 60%),
+                                 radial-gradient(900px 600px at 110% 10%, rgba(59,130,246,0.07), transparent 55%),
+                                 linear-gradient(180deg, var(--lab-bg-0), var(--lab-bg-1)); }
+  .card-glass{ background:rgba(15,28,44,0.72); backdrop-filter:blur(10px); border:1px solid var(--lab-border); }
+
+  .tab-pill{ transition:all .18s ease; }
+  .tab-pill[data-active="true"]{ background:var(--lab-cyan); color:#04222b; font-weight:800; box-shadow:0 0 18px -2px rgba(34,211,238,.55); }
+  .tab-pill[data-active="false"]{ background:transparent; color:#9fb4c7; border:1px solid var(--lab-border); }
+  .tab-pill[data-active="false"]:hover{ border-color:var(--lab-cyan); color:#d7f4fb; }
+
+  #sidebar{ transition:transform .38s cubic-bezier(.22,.9,.32,1), opacity .3s ease; }
+  #sidebar.closed{ transform:translateX(100%); opacity:0; pointer-events:none; }
+
+  #assistant-panel{ transition:transform .28s cubic-bezier(.22,.9,.32,1), opacity .22s ease, visibility .28s; transform-origin:bottom right; }
+  #assistant-panel.closed{ transform:scale(.86) translateY(14px); opacity:0; visibility:hidden; pointer-events:none; }
+
+  .info-card{ animation:fadein .3s ease; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none; } }
+
+  #scene-canvas{ touch-action:none; cursor:grab; }
+  #scene-canvas:active{ cursor:grabbing; }
+
+  #loupe-wrap{ box-shadow:0 0 0 3px rgba(34,211,238,.55), 0 0 30px -4px rgba(34,211,238,.6), inset 0 0 30px rgba(0,0,0,.5); }
+  #loupe-wrap::before{
+    content:''; position:absolute; inset:0; border-radius:50%; pointer-events:none; z-index:5;
+    background:linear-gradient(135deg, rgba(255,255,255,.18), transparent 40%);
+  }
+
+  input[type="range"].dial{ -webkit-appearance:none; appearance:none; height:6px; border-radius:6px;
+    background:linear-gradient(90deg,#0e2536,#123246); outline:none; }
+  input[type="range"].dial::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:22px; height:22px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #7cf1ff, #0aa9c9 60%, #066a80); box-shadow:0 0 10px rgba(34,211,238,.7); cursor:pointer; border:2px solid #04222b; }
+  input[type="range"].dial::-moz-range-thumb{ width:22px; height:22px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #7cf1ff, #0aa9c9 60%, #066a80); box-shadow:0 0 10px rgba(34,211,238,.7); cursor:pointer; border:2px solid #04222b; }
+
+  .toggle-track{ transition:background .2s ease; }
+
+  .loading-fill{ transition:width .3s ease; }
+
+  [hidden]{ display:none !important; }
+
+  body.fs-active header,
+  body.fs-active nav#tab-nav-mobile,
+  body.fs-active #btn-sidebar-fab{ display:none !important; }
+
+  @media (max-width: 900px){
+    #sidebar{ position:fixed; top:0; right:0; bottom:0; width:88vw; max-width:380px; z-index:60; }
+  }
+</style>
+</head>
+<body class="lab-gradient-bg">
+
+<!-- ============ LOADING SCREEN ============ -->
+<div id="loading-screen" class="fixed inset-0 z-[999] flex items-center justify-center bg-[#060a10] transition-opacity duration-500">
+  <div class="text-center">
+    <div class="mx-auto mb-4 w-16 h-16 rounded-full border-4 border-labcyan/30 border-t-labcyan animate-spin"></div>
+    <h1 class="text-xl font-extrabold glow-text tracking-wide">VIRTUAL PHYSICS LAB</h1>
+    <p class="text-slate-400 text-sm mt-1">Loading Screw Gauge Simulation&hellip;</p>
+    <div class="w-56 h-1.5 bg-[#101e30] rounded-full mx-auto mt-4 overflow-hidden">
+      <div id="loader-fill" class="loading-fill h-full w-0 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ROOT ============ -->
+<div id="app" class="h-full flex flex-col">
+
+  <!-- ================= HEADER ================= -->
+  <header class="flex-none h-16 flex items-center justify-between gap-3 px-4 border-b border-labborder bg-[#0a1119]/90 backdrop-blur z-40">
+    <div class="flex items-center gap-3 min-w-0">
+      <button id="btn-sidebar-toggle" class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg border border-labborder text-slate-300 hover:border-labcyan hover:text-labcyan">
+        <i data-lucide="menu" class="w-4 h-4"></i>
+      </button>
+      <div class="min-w-0">
+        <div class="text-[13px] sm:text-sm font-extrabold tracking-[0.14em] glow-text text-cyan-300 leading-none">VIRTUAL PHYSICS LAB</div>
+        <div class="text-[11px] text-slate-500 mt-1 truncate">Screw Gauge <span class="text-slate-600">•</span> Measurement &amp; Zero Error</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <nav class="hidden md:flex items-center gap-2 bg-[#0d1826]/60 border border-labborder rounded-full p-1" id="tab-nav">
+      <button class="tab-pill px-4 py-1.5 rounded-full text-xs" data-tab="apparatus" data-active="true">1. APPARATUS</button>
+      <button class="tab-pill px-4 py-1.5 rounded-full text-xs" data-tab="setup" data-active="false">2. SETUP</button>
+      <button class="tab-pill px-4 py-1.5 rounded-full text-xs" data-tab="run" data-active="false">3. RUN EXPERIMENT</button>
+      <button class="tab-pill px-4 py-1.5 rounded-full text-xs" data-tab="results" data-active="false">4. RESULTS / THEORY</button>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <button id="btn-fullscreen" title="Toggle fullscreen" class="w-9 h-9 flex items-center justify-center rounded-lg border border-labborder text-slate-300 hover:border-labcyan hover:text-labcyan">
+        <i data-lucide="maximize" class="w-4 h-4"></i>
+      </button>
+      <button id="btn-assistant-toggle" title="AI Lab Assistant" class="w-9 h-9 flex items-center justify-center rounded-lg border border-labborder text-slate-300 hover:border-labcyan hover:text-labcyan relative">
+        <i data-lucide="bot" class="w-4 h-4"></i>
+        <span id="assistant-badge" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-cyan-400 text-[9px] font-extrabold text-[#04222b] flex items-center justify-center">1</span>
+      </button>
+      <button id="btn-info-toggle" title="Information panel" class="w-9 h-9 flex items-center justify-center rounded-lg border border-labborder text-slate-300 hover:border-labcyan hover:text-labcyan">
+        <i data-lucide="panel-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile tab bar -->
+  <nav class="md:hidden flex-none flex items-center gap-1.5 px-3 py-2 overflow-x-auto bg-[#0a1119]/90 border-b border-labborder" id="tab-nav-mobile">
+    <button class="tab-pill px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap" data-tab="apparatus" data-active="true">1. APPARATUS</button>
+    <button class="tab-pill px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap" data-tab="setup" data-active="false">2. SETUP</button>
+    <button class="tab-pill px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap" data-tab="run" data-active="false">3. RUN</button>
+    <button class="tab-pill px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap" data-tab="results" data-active="false">4. RESULTS</button>
+  </nav>
+
+  <!-- ================= WORKSPACE ================= -->
+  <main class="flex-1 flex min-h-0 relative">
+
+    <!-- 3D viewport (always mounted) -->
+    <section id="viewport" class="flex-1 relative min-w-0 bg-black">
+      <canvas id="scene-canvas" class="absolute inset-0 w-full h-full block"></canvas>
+
+      <!-- Loupe (magnifier HUD) -->
+      <div id="loupe-container" class="absolute right-4 bottom-4 z-20 hidden sm:block">
+        <div class="text-center text-[10px] tracking-widest text-cyan-300/80 font-bold mb-1">LOUPE VIEW</div>
+        <div id="loupe-wrap" class="relative w-36 h-36 rounded-full overflow-hidden bg-black">
+          <canvas id="loupe-canvas" class="absolute inset-0 w-full h-full"></canvas>
+          <div class="absolute left-1/2 top-0 bottom-0 w-px bg-cyan-300/30"></div>
+        </div>
+      </div>
+
+      <!-- Reading HUD strip -->
+      <div id="hud-strip" class="absolute left-1/2 -translate-x-1/2 top-3 z-20 flex items-stretch gap-2 card-glass rounded-xl px-2 py-1.5 shadow-glow">
+        <div class="px-3 py-1 text-center">
+          <div class="text-[9px] tracking-widest text-slate-400 font-bold">MSR</div>
+          <div class="font-mono text-sm font-bold" id="hud-msr">0.00</div>
+        </div>
+        <div class="w-px bg-labborder"></div>
+        <div class="px-3 py-1 text-center">
+          <div class="text-[9px] tracking-widest text-slate-400 font-bold">CSR</div>
+          <div class="font-mono text-sm font-bold" id="hud-csr">0</div>
+        </div>
+        <div class="w-px bg-labborder"></div>
+        <div class="px-3 py-1 text-center rounded-lg bg-cyan-400/10 border border-cyan-400/40">
+          <div class="text-[9px] tracking-widest text-cyan-300 font-bold">READING</div>
+          <div class="font-mono text-sm font-extrabold text-cyan-300" id="hud-total">0.000 mm</div>
+        </div>
+      </div>
+
+      <!-- Per-tab overlay panels (contextual controls) -->
+      <div id="overlay-apparatus" class="tab-overlay absolute inset-x-0 bottom-0 z-20 p-4 flex justify-center pointer-events-none"></div>
+      <div id="overlay-setup" class="tab-overlay absolute inset-0 z-20 hidden"></div>
+      <div id="overlay-run" class="tab-overlay absolute inset-x-0 bottom-0 z-20 hidden"></div>
+      <div id="overlay-results" class="tab-overlay absolute inset-0 z-20 hidden overflow-y-auto"></div>
+
+      <!-- Status badges -->
+      <div id="status-badges" class="absolute left-4 bottom-4 z-20 flex flex-col gap-2"></div>
+    </section>
+
+    <!-- ================= RIGHT SIDEBAR: INFORMATION PANEL ================= -->
+    <aside id="sidebar" class="closed md:closed w-full sm:w-[380px] flex-none border-l border-labborder bg-[#0a1119] flex flex-col absolute md:relative right-0 top-0 bottom-0 z-50">
+      <div class="flex-none flex items-center justify-between px-4 py-3 border-b border-labborder">
+        <div>
+          <div class="text-[10px] tracking-[0.18em] text-cyan-300 font-extrabold">INFORMATION PANEL</div>
+          <div class="text-[11px] text-slate-500" id="sidebar-subtitle">Apparatus overview</div>
+        </div>
+        <button id="btn-sidebar-close" class="w-8 h-8 flex items-center justify-center rounded-lg border border-labborder text-slate-300 hover:border-labcyan hover:text-labcyan">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div id="sidebar-body" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    </aside>
+    <button id="btn-sidebar-fab" class="hidden absolute right-4 top-4 z-30 w-10 h-10 rounded-full card-glass flex items-center justify-center text-cyan-300 shadow-glow">
+      <i data-lucide="panel-right" class="w-4 h-4"></i>
+    </button>
+  </main>
+
+  <!-- ================= FLOATING AI ASSISTANT ================= -->
+  <div id="assistant-root" class="fixed right-5 bottom-5 z-[100]">
+    <div id="assistant-panel" class="closed absolute right-0 bottom-0 w-[360px] max-w-[90vw] h-[70vh] max-h-[600px] rounded-2xl card-glass shadow-glow flex flex-col overflow-hidden">
+      <div class="flex-none flex items-center justify-between px-4 py-3 border-b border-labborder">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-cyan-400/15 border border-cyan-400/40 flex items-center justify-center">
+            <i data-lucide="bot" class="w-4 h-4 text-cyan-300"></i>
+          </div>
+          <div>
+            <div class="text-sm font-bold">Lab AI Assistant</div>
+            <div class="text-[10px] text-emerald-400 font-semibold">● Ready to help</div>
+          </div>
+        </div>
+        <button id="btn-assistant-close" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="flex-none flex gap-1.5 px-3 pt-2.5">
+        <button class="atab px-3 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-400/10 border border-cyan-400/40 text-cyan-300" data-atab="guide">Guide</button>
+        <button class="atab px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#101e30] border border-labborder text-slate-400" data-atab="ask">Ask Lab AI</button>
+        <button class="atab px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#101e30] border border-labborder text-slate-400" data-atab="viva">Viva Q&amp;A</button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3.5" id="assistant-body">
+        <div class="atab-panel" id="atab-guide" data-atab-panel="guide"></div>
+        <div class="atab-panel hidden flex-col h-full" id="atab-ask" data-atab-panel="ask"></div>
+        <div class="atab-panel hidden" id="atab-viva" data-atab-panel="viva"></div>
+      </div>
+    </div>
+    <button id="assistant-fab" class="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 text-[#04222b] flex items-center justify-center shadow-glow relative">
+      <i data-lucide="bot" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+  <button id="btn-exit-fs" class="hidden fixed top-3 right-3 z-[200] w-9 h-9 rounded-full card-glass items-center justify-center text-cyan-300">
+    <i data-lucide="minimize" class="w-4 h-4"></i>
+  </button>
+
+  <div id="toast-root" class="fixed top-20 left-1/2 -translate-x-1/2 z-[300] flex flex-col items-center gap-2"></div>
+</div>
+
+<script>
+/* ==========================================================================
+   SECTION: CONFIG — shared constants
+   ========================================================================== */
+const CFG = {
+  circularScaleDivisions: 100,
+  pitchOptions: [1, 0.5],
+  defaultPitch: 1,
+  mainScaleRangeMm: 25,
+  worldUnitsPerMm: 0.052,
+  zeroErrorDivisionsRange: [3, 8],
+  ratchetClicksRequired: 3,
+  ratchetClickRotationDeg: 14,
+  materials: {
+    steel:      { color: 0xd8dde2, metalness: 0.55, roughness: 0.32 },
+    steelDark:  { color: 0x9098a2, metalness: 0.5,  roughness: 0.4 },
+    chrome:     { color: 0xf0f4f7, metalness: 0.65, roughness: 0.16 },
+    thimbleBody:{ color: 0x123246, metalness: 0.45, roughness: 0.34 },
+    brass:      { color: 0xd9b877, metalness: 0.55, roughness: 0.4 },
+    cyanAccent: { color: 0x22d3ee, metalness: 0.4,  roughness: 0.35 },
+    engraving:  { color: 0x0a0f16 },
+  },
+  cameraPresets: {
+    apparatus: { pos: [1.15, 0.62, 1.85], target: [0.05, 0, 0], fov: 40 },
+    reset:     { pos: [0.9, 0.55, 1.55],  target: [0.05, 0, 0], fov: 42 },
+    anvil:     { pos: [-0.20, 0.30, 0.72],target: [-0.60, 0.0, 0], fov: 28 },
+    scale:     { pos: [-0.05, 0.26, 0.68],target: [-0.35, 0.02, 0], fov: 24 },
+    orbit:     { pos: [1.3, 0.9, 1.9],    target: [0, 0, 0], fov: 45 },
+  },
+  testObjects: {
+    wire:    { label: 'Thin Lead Wire',  range: [0.42, 1.35], shape: 'cylinder-thin', unit: 'diameter' },
+    sphere:  { label: 'Steel Sphere',    range: [2.10, 4.60], shape: 'sphere',        unit: 'diameter' },
+    plate:   { label: 'Glass Plate',     range: [1.80, 3.90], shape: 'plate',         unit: 'thickness' },
+    none:    { label: 'None (zero-error check)', range: [0,0], shape:'none', unit:'thickness' },
+  },
+  storageKeys: { theme: 'sgv2_theme' },
+};
+
+/* ==========================================================================
+   SECTION: AUDIO — Web Audio synthesized SFX (no external asset files)
+   ========================================================================== */
+const Audio1 = (function(){
+  let ctx = null;
+  function ensureCtx(){
+    if(!ctx){ const AC = window.AudioContext || window.webkitAudioContext; if(AC) ctx = new AC(); }
+    if(ctx && ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  ['pointerdown','keydown'].forEach(evt=> window.addEventListener(evt, ()=>ensureCtx(), { once:true, passive:true }));
+  function envGain(c,t0,peak,attack,decay){
+    const g = c.createGain();
+    g.gain.setValueAtTime(0,t0);
+    g.gain.linearRampToValueAtTime(peak, t0+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+attack+decay);
+    return g;
+  }
+  function click(strength){
+    const c = ensureCtx(); if(!c) return; strength = strength||1;
+    const t0 = c.currentTime;
+    const bufferSize = Math.floor(c.sampleRate*0.04);
+    const buffer = c.createBuffer(1,bufferSize,c.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1)*Math.pow(1-i/bufferSize,2);
+    const noise = c.createBufferSource(); noise.buffer = buffer;
+    const nf = c.createBiquadFilter(); nf.type='highpass'; nf.frequency.value=2200;
+    const ng = envGain(c,t0,0.55*strength,0.001,0.045);
+    noise.connect(nf).connect(ng).connect(c.destination); noise.start(t0); noise.stop(t0+0.06);
+    const osc = c.createOscillator(); osc.type='square';
+    osc.frequency.setValueAtTime(1800,t0); osc.frequency.exponentialRampToValueAtTime(600,t0+0.05);
+    const og = envGain(c,t0,0.18*strength,0.001,0.07);
+    osc.connect(og).connect(c.destination); osc.start(t0); osc.stop(t0+0.08);
+  }
+  function tick(){
+    const c = ensureCtx(); if(!c) return; const t0=c.currentTime;
+    const osc=c.createOscillator(); osc.type='triangle'; osc.frequency.value=900+Math.random()*80;
+    const g=envGain(c,t0,0.05,0.001,0.02); osc.connect(g).connect(c.destination); osc.start(t0); osc.stop(t0+0.03);
+  }
+  function success(){
+    const c=ensureCtx(); if(!c) return;
+    [523.25,783.99].forEach((f,i)=>{
+      const t0=c.currentTime+i*0.09;
+      const osc=c.createOscillator(); osc.type='sine'; osc.frequency.value=f;
+      const g=envGain(c,t0,0.14,0.005,0.22); osc.connect(g).connect(c.destination); osc.start(t0); osc.stop(t0+0.3);
+    });
+  }
+  function error(){
+    const c=ensureCtx(); if(!c) return; const t0=c.currentTime;
+    const osc=c.createOscillator(); osc.type='sawtooth';
+    osc.frequency.setValueAtTime(180,t0); osc.frequency.linearRampToValueAtTime(90,t0+0.18);
+    const g=envGain(c,t0,0.12,0.005,0.2); osc.connect(g).connect(c.destination); osc.start(t0); osc.stop(t0+0.22);
+  }
+  return { click, tick, success, error };
+})();
+
+/* ==========================================================================
+   SECTION: SCENE — renderer, camera, lights, ground, resize, presets
+   (No PMREM/environment map: under some WebGL configs a generated env map
+   can make high-metalness PBR materials render solid black. Direct 3-point
+   studio lighting with moderate metalness is used instead — reads
+   consistently across devices.)
+   ========================================================================== */
+const Scene1 = {
+  renderer:null, scene:null, camera:null, controls:null, clock:null, _tween:null,
+  init(canvas){
+    this.clock = new THREE.Clock();
+    this.scene = new THREE.Scene();
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, powerPreference:'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer = renderer;
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
+    const p = CFG.cameraPresets.apparatus;
+    camera.position.set(...p.pos); camera.fov = p.fov; camera.updateProjectionMatrix();
+    this.camera = camera;
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.09;
+    controls.minDistance = 0.12; controls.maxDistance = 4.5;
+    controls.target.set(...p.target); controls.update();
+    this.controls = controls;
+
+    this._buildLights();
+    this._buildGround();
+    this._bindResize(canvas);
+    this.onResize();
+  },
+  _buildLights(){
+    const hemi = new THREE.HemisphereLight(0xbfe9ff, 0x05070c, 0.8);
+    this.scene.add(hemi);
+    const key = new THREE.DirectionalLight(0xffffff, 1.7);
+    key.position.set(2.2,3.4,2.0); key.castShadow=true;
+    key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.5; key.shadow.camera.far=12;
+    key.shadow.camera.left=-1.6; key.shadow.camera.right=1.6; key.shadow.camera.top=1.6; key.shadow.camera.bottom=-1.6;
+    key.shadow.bias=-0.0006; key.shadow.radius=3;
+    this.scene.add(key);
+    const fill = new THREE.DirectionalLight(0x66d9ff, 0.6); fill.position.set(-2.4,1.2,-1.2); this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0x8fd8ff, 0.9); rim.position.set(-0.6,1.6,-2.6); this.scene.add(rim);
+  },
+  _buildGround(){
+    const geo = new THREE.CircleGeometry(3.2, 64);
+    const mat = new THREE.MeshStandardMaterial({ color:0x08121c, roughness:0.95, metalness:0.05 });
+    const ground = new THREE.Mesh(geo, mat);
+    ground.rotation.x = -Math.PI/2; ground.position.y = -0.70; ground.receiveShadow = true;
+    this.scene.add(ground);
+
+    // faint cyan grid ring for lab-floor feel
+    const ring = new THREE.Mesh(new THREE.RingGeometry(1.55, 1.57, 64), new THREE.MeshBasicMaterial({ color:0x22d3ee, transparent:true, opacity:0.18, side:THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI/2; ring.position.y = -0.699;
+    this.scene.add(ring);
+  },
+  _bindResize(canvas){
+    const ro = new ResizeObserver(()=>this.onResize());
+    ro.observe(canvas.parentElement);
+    window.addEventListener('resize', ()=>this.onResize());
+  },
+  onResize(){
+    const el = this.renderer.domElement.parentElement;
+    const w = el.clientWidth||window.innerWidth, h = el.clientHeight||window.innerHeight;
+    this.renderer.setSize(w,h,false);
+    this.camera.aspect = w/Math.max(h,1);
+    this.camera.updateProjectionMatrix();
+  },
+  goToPreset(name, duration){
+    const preset = CFG.cameraPresets[name]; if(!preset) return;
+    duration = duration!=null ? duration : 900;
+    const cam=this.camera, ctr=this.controls;
+    const startPos=cam.position.clone(), startTarget=ctr.target.clone(), startFov=cam.fov;
+    const endPos=new THREE.Vector3(...preset.pos), endTarget=new THREE.Vector3(...preset.target), endFov=preset.fov;
+    if(this._tween) cancelAnimationFrame(this._tween.raf);
+    const t0=performance.now(); const ease=t=>1-Math.pow(1-t,3);
+    const step=(now)=>{
+      const t=Math.min(1,(now-t0)/duration); const e=ease(t);
+      cam.position.lerpVectors(startPos,endPos,e);
+      ctr.target.lerpVectors(startTarget,endTarget,e);
+      cam.fov = startFov+(endFov-startFov)*e; cam.updateProjectionMatrix(); ctr.update();
+      if(t<1) this._tween={raf:requestAnimationFrame(step)}; else this._tween=null;
+    };
+    this._tween = { raf: requestAnimationFrame(step) };
+  },
+  render(){ this.controls.update(); this.renderer.render(this.scene, this.camera); },
+};
+
+/* ==========================================================================
+   SECTION: MODEL — 3D mesh construction (U-frame, anvil, sleeve, thimble,
+   ratchet, spindle) + label sprites + live kinematics.
+   ========================================================================== */
+const Model1 = (function(){
+  const U = CFG.worldUnitsPerMm;
+  const L = {
+    anvilTipX: 0, anvilBossX: -0.11,
+    sleeveLength: 0.62, thimbleLength: 0.40, ratchetLength: 0.11,
+    frameArcDepth: 0.62, frameThickness: 0.075, frameDepth: 0.075,
+    anvilRadius: 0.048, spindleRadius: 0.040, sleeveRadius: 0.088,
+    thimbleRadius: 0.108, ratchetRadius: 0.118,
+  };
+  L.maxGapWorld = CFG.mainScaleRangeMm * U;
+  L.sleeveFixedX = L.maxGapWorld + 0.02;
+  L.sleeveScaleZeroX = L.sleeveFixedX - L.maxGapWorld;
+
+  function makeLabelTexture(text, opts){
+    opts = opts||{};
+    const size = opts.size||128;
+    const canvas = document.createElement('canvas'); canvas.width=size; canvas.height=size;
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,size,size);
+    ctx.fillStyle = opts.color||'#e6f1f8';
+    ctx.font = `700 ${opts.fontSize||84}px 'JetBrains Mono', monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text, size/2, size/2+2);
+    const tex = new THREE.CanvasTexture(canvas); tex.anisotropy=4; return tex;
+  }
+  function labelSprite(text, worldSize, color){
+    const tex = makeLabelTexture(text, { color: color||'#0d1117' });
+    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:true, depthWrite:false });
+    const spr = new THREE.Sprite(mat); spr.scale.set(worldSize, worldSize, 1); return spr;
+  }
+  function stdMat(key, extra){
+    const m = CFG.materials[key];
+    return new THREE.MeshStandardMaterial(Object.assign({
+      color:m.color, metalness:m.metalness!=null?m.metalness:0.55, roughness:m.roughness!=null?m.roughness:0.35,
+    }, extra||{}));
+  }
+
+  const api = {
+    root:null, anvil:null, sleeve:null, movingGroup:null, thimbleGroup:null, scaleRing:null, spindle:null, ratchet:null,
+    layout:L,
+
+    build(scene){
+      const root = new THREE.Group(); this.root = root;
+      this._buildFrame(root);
+      this._buildAnvil(root);
+      this._buildSleeve(root);
+      this._buildSpindleAndThimble(root);
+      this._buildIndexMark(root);
+      root.position.set(-0.62, 0, 0);
+      scene.add(root);
+      return this;
+    },
+
+    _buildFrame(root){
+      const shape = new THREE.Shape();
+      const t = L.frameThickness;
+      const yTop = 0.05, yBot = -L.frameArcDepth;
+      const xL = L.anvilBossX - 0.10, xR = L.sleeveFixedX - 0.12;
+      const r = 0.10, c = t*0.55;
+      shape.moveTo(xL, yTop);
+      shape.lineTo(xL, yBot+r);
+      shape.absarc(xL+r, yBot+r, r, Math.PI, Math.PI*1.5, false);
+      shape.lineTo(xR-r, yBot);
+      shape.absarc(xR-r, yBot+r, r, Math.PI*1.5, Math.PI*2, false);
+      shape.lineTo(xR, yTop);
+      shape.lineTo(xR-t, yTop);
+      shape.lineTo(xR-t, yBot+t+c);
+      shape.lineTo(xR-t-c, yBot+t);
+      shape.lineTo(xL+t+c, yBot+t);
+      shape.lineTo(xL+t, yBot+t+c);
+      shape.lineTo(xL+t, yTop);
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth:L.frameDepth, bevelEnabled:true, bevelThickness:0.008, bevelSize:0.008, bevelSegments:3, curveSegments:12 });
+      const mesh = new THREE.Mesh(geo, stdMat('steelDark', { roughness:0.42 }));
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.position.z = -L.frameDepth/2;
+      root.add(mesh);
+
+      // Cyan accent inlay + "0-25mm  LC=0.01mm" plaque (split into two
+      // shorter sprites so text never overflows its canvas)
+      const inlay = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.28, L.frameDepth*0.5), new THREE.MeshStandardMaterial({ color:0x22d3ee, emissive:0x0c4a57, emissiveIntensity:0.4, metalness:0.3, roughness:0.5 }));
+      inlay.position.set(xL+t/2, yBot+0.34, 0);
+      root.add(inlay);
+      const plaque1 = labelSprite('0-25mm', 0.075, '#8fe9ff');
+      plaque1.position.set((xL+xR)/2 - 0.09, yBot+0.11, L.frameDepth*0.7);
+      const plaque2 = labelSprite('LC 0.01', 0.075, '#8fe9ff');
+      plaque2.position.set((xL+xR)/2 + 0.10, yBot+0.11, L.frameDepth*0.7);
+      root.add(plaque1, plaque2);
+    },
+
+    _buildAnvil(root){
+      const g = new THREE.Group();
+      const bossLen = 0.05, bossX = L.anvilBossX;
+      const studStartX = bossX + bossLen/2, studLen = L.anvilTipX - studStartX;
+      const boss = new THREE.Mesh(new THREE.CylinderGeometry(L.anvilRadius*1.35, L.anvilRadius*1.45, bossLen, 24), stdMat('steelDark'));
+      boss.rotation.z = Math.PI/2; boss.position.x = bossX; boss.castShadow = boss.receiveShadow = true;
+      g.add(boss);
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(L.anvilRadius, L.anvilRadius, studLen, 28), stdMat('chrome'));
+      stud.rotation.z = Math.PI/2; stud.position.x = studStartX + studLen/2; stud.castShadow = stud.receiveShadow = true;
+      g.add(stud);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(L.anvilRadius, 20, 12, 0, Math.PI*2, 0, Math.PI/2), stdMat('chrome'));
+      cap.rotation.z = -Math.PI/2; cap.position.x = L.anvilTipX; cap.castShadow = true;
+      g.add(cap);
+      root.add(g); this.anvil = g;
+    },
+
+    _buildSleeve(root){
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(L.sleeveRadius, L.sleeveRadius*1.06, L.sleeveLength, 40, 1, true), stdMat('steel', { side:THREE.DoubleSide }));
+      body.rotation.z = Math.PI/2; body.position.x = L.sleeveFixedX + L.sleeveLength/2; body.castShadow = body.receiveShadow = true;
+      g.add(body);
+      const flange = new THREE.Mesh(new THREE.TorusGeometry(L.sleeveRadius*1.05, 0.014, 12, 28), stdMat('steelDark'));
+      flange.rotation.y = Math.PI/2; flange.position.x = L.sleeveFixedX + L.sleeveLength - 0.01;
+      g.add(flange);
+
+      const tickMat = new THREE.MeshBasicMaterial({ color: CFG.materials.engraving.color });
+      const majorGeo = new THREE.BoxGeometry(0.006, 0.024, 0.002);
+      const minorGeo = new THREE.BoxGeometry(0.004, 0.016, 0.002);
+      const nMajor = CFG.mainScaleRangeMm+1, nMinor = CFG.mainScaleRangeMm;
+      const majorInst = new THREE.InstancedMesh(majorGeo, tickMat, nMajor);
+      const minorInst = new THREE.InstancedMesh(minorGeo, tickMat, nMinor);
+      const dummy = new THREE.Object3D(); const topY = L.sleeveRadius+0.001;
+      for(let mm=0; mm<=CFG.mainScaleRangeMm; mm++){
+        const x = L.sleeveScaleZeroX + mm*U;
+        dummy.position.set(x, topY, 0); dummy.rotation.set(0,0,0); dummy.updateMatrix();
+        majorInst.setMatrixAt(mm, dummy.matrix);
+        if(mm < CFG.mainScaleRangeMm){
+          dummy.position.set(x+0.5*U, -topY, 0); dummy.rotation.z = Math.PI; dummy.updateMatrix();
+          minorInst.setMatrixAt(mm, dummy.matrix);
+        }
+      }
+      majorInst.instanceMatrix.needsUpdate = true; minorInst.instanceMatrix.needsUpdate = true;
+      g.add(majorInst, minorInst);
+
+      for(let mm=0; mm<=CFG.mainScaleRangeMm; mm+=5){
+        const spr = labelSprite(String(mm), 0.052, '#e6f1f8');
+        spr.position.set(L.sleeveScaleZeroX+mm*U, L.sleeveRadius+0.045, 0);
+        g.add(spr);
+      }
+
+      const idxLen = (L.sleeveFixedX+L.sleeveLength) - L.sleeveScaleZeroX;
+      const idx = new THREE.Mesh(new THREE.BoxGeometry(idxLen, 0.0035, 0.0035), new THREE.MeshBasicMaterial({ color:0x22d3ee }));
+      idx.position.set(L.sleeveScaleZeroX+idxLen/2, L.sleeveRadius+0.0005, 0);
+      g.add(idx); this.indexNeedle = idx;
+
+      root.add(g); this.sleeve = g;
+    },
+
+    _buildSpindleAndThimble(root){
+      const moving = new THREE.Group();
+      const rodLen = L.maxGapWorld + L.sleeveLength + L.ratchetLength + 0.3;
+      const spindle = new THREE.Mesh(new THREE.CylinderGeometry(L.spindleRadius, L.spindleRadius, rodLen, 24), stdMat('chrome'));
+      spindle.rotation.z = Math.PI/2; spindle.position.x = rodLen/2; spindle.castShadow = spindle.receiveShadow = true;
+      moving.add(spindle);
+      const spindleCap = new THREE.Mesh(new THREE.SphereGeometry(L.spindleRadius, 20, 12, 0, Math.PI*2, 0, Math.PI/2), stdMat('chrome'));
+      spindleCap.rotation.z = Math.PI/2; spindleCap.position.x = 0; moving.add(spindleCap);
+
+      const thimbleGroup = new THREE.Group();
+      const thimbleBody = new THREE.Mesh(new THREE.CylinderGeometry(L.thimbleRadius, L.thimbleRadius, L.thimbleLength, 48, 1, true), stdMat('thimbleBody', { side:THREE.DoubleSide, roughness:0.3 }));
+      thimbleBody.rotation.z = Math.PI/2; thimbleBody.position.x = L.thimbleLength/2; thimbleBody.castShadow = thimbleBody.receiveShadow = true;
+      thimbleGroup.add(thimbleBody);
+      const bevel = new THREE.Mesh(new THREE.TorusGeometry(L.thimbleRadius, 0.010, 10, 40), stdMat('chrome'));
+      bevel.rotation.y = Math.PI/2; bevel.position.x = 0.006; thimbleGroup.add(bevel);
+
+      const scaleRing = new THREE.Group();
+      const csTickMat = new THREE.MeshBasicMaterial({ color:0xbdeeff });
+      const csTickGeo = new THREE.BoxGeometry(0.0022, 0.014, 0.0022);
+      const N = CFG.circularScaleDivisions;
+      const csInst = new THREE.InstancedMesh(csTickGeo, csTickMat, N);
+      const dummy = new THREE.Object3D();
+      // NOTE: angle sign is negated (-(i/N)*2pi) so that, combined with the
+      // moving group's rotation.x = +totalRotationRad, the division that
+      // lands at the fixed reference line matches the numeric CSR the
+      // physics model reports (verified: index-at-top === CSR_displayed).
+      // A "+" sign here would make the visible thimble digit count backward
+      // relative to the HUD/observation-table reading.
+      for(let i=0;i<N;i++){
+        const ang = -(i/N)*Math.PI*2, r = L.thimbleRadius+0.001;
+        dummy.position.set(0.028, Math.cos(ang)*r, Math.sin(ang)*r);
+        dummy.rotation.set(-ang,0,0); dummy.updateMatrix();
+        csInst.setMatrixAt(i, dummy.matrix);
+      }
+      csInst.instanceMatrix.needsUpdate = true; scaleRing.add(csInst);
+      for(let i=0;i<N;i+=10){
+        const ang=-(i/N)*Math.PI*2, r=L.thimbleRadius+0.05;
+        const spr = labelSprite(String(i).padStart(2,'0'), 0.040, '#eef2f7');
+        spr.position.set(0.028, Math.cos(ang)*r, Math.sin(ang)*r);
+        scaleRing.add(spr);
+      }
+      thimbleGroup.add(scaleRing); this.scaleRing = scaleRing;
+
+      const ratchet = new THREE.Group();
+      const ratchetBody = new THREE.Mesh(new THREE.CylinderGeometry(L.ratchetRadius, L.ratchetRadius*0.92, L.ratchetLength, 40), stdMat('brass', { roughness:0.42 }));
+      ratchetBody.rotation.z = Math.PI/2; ratchetBody.castShadow = ratchetBody.receiveShadow = true;
+      ratchet.add(ratchetBody);
+      const ridgeGeo = new THREE.BoxGeometry(L.ratchetLength*0.86, 0.010, 0.010);
+      const ridgeMat = stdMat('steelDark', { roughness:0.5 });
+      const ridgeCount = 36;
+      const ridgeInst = new THREE.InstancedMesh(ridgeGeo, ridgeMat, ridgeCount);
+      const rd = new THREE.Object3D();
+      for(let i=0;i<ridgeCount;i++){
+        const ang=(i/ridgeCount)*Math.PI*2;
+        rd.position.set(0, Math.cos(ang)*L.ratchetRadius, Math.sin(ang)*L.ratchetRadius);
+        rd.rotation.x=-ang; rd.updateMatrix();
+        ridgeInst.setMatrixAt(i, rd.matrix);
+      }
+      ridgeInst.instanceMatrix.needsUpdate = true; ratchet.add(ridgeInst);
+      ratchet.position.x = L.thimbleLength + L.ratchetLength/2 - 0.01;
+
+      moving.add(thimbleGroup); moving.add(ratchet);
+      root.add(moving);
+      this.spindle = spindle; this.movingGroup = moving; this.thimbleGroup = thimbleGroup; this.ratchet = ratchet;
+    },
+
+    _buildIndexMark(root){
+      const mark = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.03, 3), new THREE.MeshBasicMaterial({ color:0x22d3ee }));
+      mark.rotation.z = Math.PI; mark.position.set(L.sleeveScaleZeroX, L.sleeveRadius+0.07, 0);
+      root.add(mark);
+    },
+
+    setKinematics(gapMm, rotationRad){
+      const gapWorld = gapMm*U;
+      this.movingGroup.position.x = gapWorld;
+      this.movingGroup.rotation.x = rotationRad;
+    },
+    setZeroErrorOffset(offsetRad){ if(this.scaleRing) this.scaleRing.rotation.x = offsetRad; },
+    referenceWorldX(){ return this.root.position.x + L.sleeveScaleZeroX; },
+  };
+  return api;
+})();
+
+/* ==========================================================================
+   SECTION: TEST OBJECTS — wire / sphere / glass plate (+ none), hidden
+   ground-truth dimensions, positioned between anvil and spindle.
+   ========================================================================== */
+const TestObjects1 = (function(){
+  const U = CFG.worldUnitsPerMm;
+  function rand(min,max){ return min+Math.random()*(max-min); }
+  function round2(n){ return Math.round(n*1000)/1000; }
+  function leadMat(){ return new THREE.MeshStandardMaterial({ color:0x6b6f78, metalness:0.7, roughness:0.5 }); }
+  function steelMat(){ return new THREE.MeshStandardMaterial({ color:0xc7d0d8, metalness:0.75, roughness:0.28 }); }
+  function glassMat(){ return new THREE.MeshPhysicalMaterial({ color:0xbfeeff, transparent:true, opacity:0.4, roughness:0.05, metalness:0, transmission:0.55, thickness:0.05, clearcoat:1, clearcoatRoughness:0.05 }); }
+
+  return {
+    group:null, current:null, currentKey:'wire', currentTrueMm:0,
+    init(root){ this.group = new THREE.Group(); root.add(this.group); },
+    clear(){
+      if(this.current){
+        this.group.remove(this.current);
+        this.current.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material && o.material.dispose) o.material.dispose(); });
+        this.current = null;
+      }
+    },
+    spawn(key, customMm){
+      this.clear();
+      const def = CFG.testObjects[key];
+      if(!def || key==='none'){ this.currentKey='none'; this.currentTrueMm=0; return { key:'none', trueMm:0, label:'None' }; }
+      let trueMm = customMm!=null ? customMm : rand(...def.range);
+      trueMm = round2(trueMm);
+      const w = trueMm*U;
+      let mesh;
+      if(def.shape==='cylinder-thin'){
+        const r=w/2; mesh = new THREE.Mesh(new THREE.CylinderGeometry(r,r,0.34,28), leadMat());
+        mesh.rotation.x = Math.PI/2; mesh.position.x = r;
+      } else if(def.shape==='sphere'){
+        const r=w/2; mesh = new THREE.Mesh(new THREE.SphereGeometry(r,32,24), steelMat()); mesh.position.x = r;
+      } else {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(w,0.30,0.22), glassMat()); mesh.position.x = w/2;
+      }
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+      this.group.add(mesh); this.current = mesh; this.currentKey=key; this.currentTrueMm=trueMm;
+      return { key, trueMm, label: def.label };
+    },
+  };
+})();
+
+/* ==========================================================================
+   SECTION: PHYSICS — ground-truth mechanics (validated formulas)
+
+   PSR (Pitch/Main Scale Reading) = floor(gap / pitch) * pitch
+   CSR (Circular Scale Reading, nominal) = ((gap mod pitch)/pitch) * 100
+   Zero error bakes a fixed division offset into what the thimble *shows*:
+     CSR_displayed = (CSR_nominal + zeroErrorOffsetDiv) mod 100
+   Observed Reading  = PSR + CSR_displayed * LC
+   Zero Error (mm)   = +offsetDiv*LC (small offset -> "positive")
+                     = -(100-offsetDiv)*LC (offset near 100 -> "negative")
+   Corrected Reading = Observed Reading - Zero Error  (≈ true gap)
+   ========================================================================== */
+const Physics1 = {
+  pitchMm: CFG.defaultPitch, totalRotationRad: 0,
+  zeroErrorMode: 'nil', zeroErrorOffsetDiv: 0,
+  ratchetClicks: 0, objectKey:'none', objectTrueMm:0, contactMade:false,
+  _listeners: {},
+  on(evt,fn){ (this._listeners[evt]=this._listeners[evt]||[]).push(fn); },
+  _emit(evt,data){ (this._listeners[evt]||[]).forEach(fn=>fn(data)); },
+  get LC(){ return this.pitchMm / CFG.circularScaleDivisions; },
+  setPitch(pitchMm){ this.pitchMm = pitchMm; this._emit('change', this.getState()); },
+  setObject(key, trueMm){
+    this.objectKey=key; this.objectTrueMm=trueMm||0; this.contactMade=false; this.ratchetClicks=0;
+    this._emit('change', this.getState());
+  },
+  setZeroErrorMode(mode){
+    this.zeroErrorMode = mode;
+    const [lo,hi] = CFG.zeroErrorDivisionsRange;
+    const d = Math.round(lo + Math.random()*(hi-lo));
+    if(mode==='nil') this.zeroErrorOffsetDiv = 0;
+    else if(mode==='positive') this.zeroErrorOffsetDiv = d;
+    else if(mode==='negative') this.zeroErrorOffsetDiv = 100-d;
+    else if(mode==='random') this.zeroErrorOffsetDiv = Math.random()<0.5 ? d : (100-d);
+    this._emit('change', this.getState());
+    return this.zeroErrorOffsetDiv;
+  },
+  get gapMm(){ const g=(this.totalRotationRad/(2*Math.PI))*this.pitchMm; return Math.min(Math.max(g,0), CFG.mainScaleRangeMm); },
+  get minGapMm(){ return this.objectKey && this.objectKey!=='none' ? this.objectTrueMm : 0; },
+  rotateBy(deltaRad){
+    const minGap=this.minGapMm, maxGap=CFG.mainScaleRangeMm;
+    const minRot=(minGap/this.pitchMm)*2*Math.PI, maxRot=(maxGap/this.pitchMm)*2*Math.PI;
+    const before=this.totalRotationRad; let after=before+deltaRad;
+    let hitMin=false, hitMax=false;
+    if(after<=minRot){ after=minRot; hitMin=true; }
+    if(after>=maxRot){ after=maxRot; hitMax=true; }
+    this.totalRotationRad = after;
+    const moved = Math.abs(after-before) > 1e-9;
+    const wasAtMin = Math.abs(before-minRot) < 1e-6;
+    if(hitMin){
+      if(!this.contactMade && (moved||wasAtMin)){ this.contactMade=true; this._emit('contact', this.getState()); }
+    } else if(this.contactMade && after>minRot+1e-6){
+      this.contactMade=false; this.ratchetClicks=0;
+    }
+    this._emit('change', this.getState());
+    return { moved, hitMin, hitMax, gapMm:this.gapMm };
+  },
+  ratchetClick(){
+    const stepRad = CFG.ratchetClickRotationDeg*Math.PI/180;
+    const res = this.rotateBy(-stepRad);
+    if(this.contactMade) this.ratchetClicks = Math.min(this.ratchetClicks+1, 9);
+    this._emit('ratchet', { clicks:this.ratchetClicks, ...res });
+    return { clicks:this.ratchetClicks, ...res };
+  },
+  turnBackStep(){ return this.rotateBy((CFG.ratchetClickRotationDeg*Math.PI/180)*1.4); },
+  turnFwdStep(){ return this.rotateBy(-(CFG.ratchetClickRotationDeg*Math.PI/180)*1.4); },
+  openJaws(){
+    const clearMm = Math.min(CFG.mainScaleRangeMm, this.minGapMm+4);
+    this.totalRotationRad = (clearMm/this.pitchMm)*2*Math.PI;
+    this.contactMade=false; this.ratchetClicks=0;
+    this._emit('change', this.getState());
+  },
+  setRotationForGap(gapMm){
+    this.totalRotationRad = (gapMm/this.pitchMm)*2*Math.PI;
+    this.contactMade = gapMm <= this.minGapMm+1e-6;
+    this._emit('change', this.getState());
+  },
+  get PSR(){ const g=this.gapMm,p=this.pitchMm; return Math.floor((g/p)+1e-9)*p; },
+  get CSR_nominal(){ const g=this.gapMm,p=this.pitchMm; const frac=((g/p)%1+1)%1; return Math.round(frac*CFG.circularScaleDivisions)%CFG.circularScaleDivisions; },
+  get CSR(){ return (this.CSR_nominal + this.zeroErrorOffsetDiv) % CFG.circularScaleDivisions; },
+  get observedReading(){ return this.PSR + this.CSR*this.LC; },
+  get zeroErrorMm(){ const d=this.zeroErrorOffsetDiv; if(d===0) return 0; return d<=50 ? d*this.LC : -(CFG.circularScaleDivisions-d)*this.LC; },
+  get correctedReading(){ return this.observedReading - this.zeroErrorMm; },
+  get isRatchetReady(){ return this.contactMade && this.ratchetClicks >= CFG.ratchetClicksRequired; },
+  getState(){
+    return {
+      pitchMm:this.pitchMm, LC:this.LC, gapMm:this.gapMm, totalRotationRad:this.totalRotationRad,
+      PSR:this.PSR, CSR:this.CSR, observedReading:this.observedReading,
+      zeroErrorMm:this.zeroErrorMm, correctedReading:this.correctedReading,
+      contactMade:this.contactMade, ratchetClicks:this.ratchetClicks,
+      objectKey:this.objectKey, objectTrueMm:this.objectTrueMm, isRatchetReady:this.isRatchetReady,
+    };
+  },
+};
+
+/* ==========================================================================
+   SECTION: LOUPE — picture-in-picture magnifier following the reference
+   line / circular-scale junction, to eliminate reading ambiguity.
+   Shares Scene1's scene + Model1's meshes; owns its own tiny renderer and a
+   narrow-FOV camera so it can zoom independently of the main view.
+   ========================================================================== */
+const Loupe1 = {
+  renderer:null, camera:null, enabled:true,
+  init(canvas){
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    this.renderer = renderer;
+    const camera = new THREE.PerspectiveCamera(15, 1, 0.01, 100);
+    this.camera = camera;
+    this.onResize();
+  },
+  onResize(){
+    const el = this.renderer.domElement.parentElement;
+    const size = Math.min(el.clientWidth, el.clientHeight) || 144;
+    this.renderer.setSize(size, size, false);
+    this.camera.aspect = 1; this.camera.updateProjectionMatrix();
+  },
+  update(){
+    if(!this.enabled) return;
+    // Follow the live reference-line / circular-scale digit junction. The
+    // scale ticks/labels sit at local x=0.028 within the moving group, at
+    // radius thimbleRadius+0.05 from the spindle axis (world Y=Z=0) — so a
+    // tight, elevated close-up centred a bit below that radius keeps the
+    // current division legible right on the crosshair.
+    const targetX = Model1.root.position.x + Model1.movingGroup.position.x + 0.028;
+    const digitY = Model1.layout.thimbleRadius + 0.05;
+    this.camera.position.set(targetX + 0.015, digitY + 0.04, 0.14);
+    this.camera.lookAt(targetX, digitY - 0.01, 0);
+  },
+  render(){ if(!this.enabled) return; this.update(); this.renderer.render(Scene1.scene, this.camera); },
+};
+
+/* ==========================================================================
+   SECTION: UI — tabs, sidebar (INFORMATION PANEL), per-tab overlay controls,
+   HUD, toasts, status badges, theme/fullscreen.
+   ========================================================================== */
+const UI1 = {
+  activeTab: 'apparatus',
+  obsRows: [],
+  obsMode: 'manual',
+  badges: {},
+
+  init(){
+    lucide.createIcons();
+    this._buildOverlays();
+    this._initTabs();
+    this._initSidebar();
+    this._initHeaderButtons();
+    this._bindPhysicsEvents();
+    this._wireSetupControls();
+    this._wireRunControls();
+    this._refreshFormulaDisplays();
+    this._renderObsTable();
+    this.switchTab('apparatus');
+    this.updateHUD(Physics1.getState());
+  },
+
+  $(sel){ return document.querySelector(sel); },
+  $$(sel){ return Array.from(document.querySelectorAll(sel)); },
+
+  /* ---------------- Build overlay panel skeletons ---------------- */
+  _buildOverlays(){
+    // APPARATUS overlay: a caption strip at the bottom
+    this.$('#overlay-apparatus').innerHTML = `
+      <div class="card-glass rounded-xl px-4 py-2.5 pointer-events-auto max-w-xl text-center">
+        <div class="text-[11px] text-cyan-300 font-bold tracking-wide">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Explore the instrument, then open <b class="text-slate-200">2. SETUP</b> to configure the experiment.</div>
+      </div>`;
+
+    // SETUP overlay: configuration form, centered card
+    this.$('#overlay-setup').innerHTML = `
+      <div class="w-full h-full flex items-center justify-center p-4 pointer-events-none">
+        <div class="card-glass rounded-2xl p-5 w-full max-w-md pointer-events-auto shadow-glow">
+          <div class="text-[11px] tracking-widest text-cyan-300 font-extrabold mb-3">EXPERIMENT SETUP</div>
+
+          <label class="block mb-3">
+            <span class="text-[11px] text-slate-400 font-semibold">Pitch of the screw</span>
+            <select id="sel-pitch" class="mt-1 w-full bg-[#0b1622] border border-labborder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-labcyan">
+              <option value="1">1 mm (LC = 0.01 mm)</option>
+              <option value="0.5">0.5 mm (LC = 0.005 mm)</option>
+            </select>
+          </label>
+
+          <label class="block mb-3">
+            <span class="text-[11px] text-slate-400 font-semibold">Zero error</span>
+            <select id="sel-zeroerror" class="mt-1 w-full bg-[#0b1622] border border-labborder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-labcyan">
+              <option value="nil">Nil</option>
+              <option value="positive">Positive</option>
+              <option value="negative">Negative</option>
+              <option value="random">Random (challenge)</option>
+            </select>
+          </label>
+
+          <label class="block mb-2">
+            <span class="text-[11px] text-slate-400 font-semibold">Object to measure</span>
+            <select id="sel-object" class="mt-1 w-full bg-[#0b1622] border border-labborder rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-labcyan">
+              <option value="wire">Thin Lead Wire</option>
+              <option value="sphere">Steel Sphere</option>
+              <option value="plate">Glass Plate</option>
+              <option value="none">None (zero-error check)</option>
+            </select>
+          </label>
+
+          <div id="lc-preview" class="mt-3 bg-[#0b1622] border border-labborder rounded-lg px-3 py-2.5 text-[12px] font-mono flex items-center justify-between">
+            <span class="text-slate-400">Least Count</span>
+            <span class="text-cyan-300 font-bold" id="setup-lc-value">0.010 mm</span>
+          </div>
+
+          <button id="btn-goto-run" class="mt-4 w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 text-[#04222b] font-extrabold text-sm shadow-glow flex items-center justify-center gap-2">
+            <i data-lucide="play" class="w-4 h-4"></i> Start Experiment
+          </button>
+        </div>
+      </div>`;
+
+    // RUN overlay: bottom control dock
+    this.$('#overlay-run').innerHTML = `
+      <div class="p-3 sm:p-4 flex flex-col items-center gap-2.5 pointer-events-none">
+        <div class="pointer-events-auto card-glass rounded-xl px-4 py-2 text-[11px] text-slate-300 flex items-center gap-2 flex-wrap justify-center max-w-xl text-center">
+          <i data-lucide="hand" class="w-3.5 h-3.5 text-cyan-300"></i>
+          Drag the <b class="text-slate-100">thimble</b>, use the dial, or the <b class="text-slate-100">ratchet</b> for the final 3 clicks
+        </div>
+
+        <div class="pointer-events-auto w-full max-w-xl card-glass rounded-2xl p-3 flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-slate-400 w-14">OPEN</span>
+            <input id="dial-rotate" type="range" min="0" max="1000" value="0" class="dial flex-1">
+            <span class="text-[10px] font-bold text-slate-400 w-14 text-right">CLOSE</span>
+          </div>
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <button id="btn-open-jaws" class="px-3 py-2 rounded-lg bg-[#101e30] border border-labborder text-xs font-bold flex items-center gap-1.5 hover:border-labcyan">
+              <i data-lucide="chevrons-left-right" class="w-3.5 h-3.5"></i> Open Jaws
+            </button>
+            <div class="flex items-center gap-2">
+              <button id="btn-turn-back" class="w-9 h-9 rounded-full bg-[#101e30] border border-labborder flex items-center justify-center hover:border-labcyan" title="Turn back">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              </button>
+              <button id="btn-ratchet" class="px-4 py-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 text-[#04222b] text-xs font-extrabold flex items-center gap-1.5 shadow-glow">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i> Ratchet <span id="click-count">0/3</span>
+              </button>
+              <button id="btn-turn-fwd" class="w-9 h-9 rounded-full bg-[#101e30] border border-labborder flex items-center justify-center hover:border-labcyan" title="Turn forward">
+                <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <button id="btn-new-specimen" class="px-3 py-2 rounded-lg bg-[#101e30] border border-labborder text-xs font-bold flex items-center gap-1.5 hover:border-labcyan">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> New Specimen
+            </button>
+          </div>
+        </div>
+      </div>`;
+
+    // RESULTS overlay: results + observation table + theory, scrollable panel
+    this.$('#overlay-results').innerHTML = `
+      <div class="min-h-full w-full flex justify-center p-4 pointer-events-auto">
+        <div class="w-full max-w-3xl space-y-4 pb-8">
+
+          <div class="card-glass rounded-2xl p-5">
+            <div class="text-[11px] tracking-widest text-cyan-300 font-extrabold mb-3">FORMULAE</div>
+            <div class="grid sm:grid-cols-2 gap-3 text-[12px] font-mono">
+              <div class="bg-[#0b1622] border border-labborder rounded-lg px-3 py-2.5 text-center text-cyan-200">LC = Pitch ÷ CSD</div>
+              <div class="bg-[#0b1622] border border-labborder rounded-lg px-3 py-2.5 text-center text-cyan-200">Reading = MSR + CSR×LC</div>
+              <div class="bg-[#0b1622] border border-labborder rounded-lg px-3 py-2.5 text-center text-cyan-200 sm:col-span-2">Corrected = Reading − Zero Error</div>
+            </div>
+          </div>
+
+          <div class="card-glass rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div class="text-[11px] tracking-widest text-cyan-300 font-extrabold">OBSERVATION TABLE</div>
+              <div class="flex items-center gap-2">
+                <div class="flex bg-[#0b1622] border border-labborder rounded-full p-0.5">
+                  <button class="mode-btn px-3 py-1 rounded-full text-[10px] font-bold" data-mode="manual">Manual</button>
+                  <button class="mode-btn px-3 py-1 rounded-full text-[10px] font-bold" data-mode="auto">Auto-fill</button>
+                </div>
+                <button id="btn-add-row" class="px-3 py-1.5 rounded-lg bg-cyan-400/15 border border-cyan-400/40 text-cyan-300 text-[11px] font-bold">+ Capture</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg border border-labborder">
+              <table class="w-full text-[11px] text-center">
+                <thead class="bg-[#0b1622] text-slate-400">
+                  <tr><th class="py-2">#</th><th>PSR</th><th>CSR</th><th>Observed</th><th>Corrected</th><th></th></tr>
+                </thead>
+                <tbody id="obs-tbody" class="font-mono"></tbody>
+                <tfoot class="bg-[#0b1622] text-cyan-300 font-mono font-bold">
+                  <tr><td colspan="4" class="py-2 text-right pr-2 text-slate-400 font-sans font-semibold">Mean Corrected</td><td id="obs-mean">—</td><td></td></tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2">Zero error (current setting): <b class="text-slate-300" id="obs-zeroerror-note">0.000 mm</b></p>
+          </div>
+
+        </div>
+      </div>`;
+
+    lucide.createIcons();
+  },
+
+  /* ---------------- Tabs ---------------- */
+  _initTabs(){
+    this.$$('.tab-pill').forEach(btn=>{
+      btn.addEventListener('click', ()=> this.switchTab(btn.dataset.tab));
+    });
+  },
+  switchTab(tab){
+    this.activeTab = tab;
+    this.$$('.tab-pill').forEach(b=> b.dataset.active = String(b.dataset.tab === tab));
+    ['apparatus','setup','run','results'].forEach(t=>{
+      const el = this.$('#overlay-'+t);
+      el.classList.toggle('hidden', t !== tab);
+    });
+    Loupe1.enabled = (tab === 'run');
+    this.$('#loupe-container').classList.toggle('hidden', tab !== 'run');
+    this.$('#hud-strip').classList.toggle('hidden', tab === 'results');
+
+    const presetMap = { apparatus:'apparatus', setup:'reset', run:'reset', results:'orbit' };
+    Scene1.goToPreset(presetMap[tab] || 'reset');
+
+    this._renderSidebarForTab(tab);
+    lucide.createIcons();
+    if(tab === 'results') this._renderObsTable();
+    if(typeof Assistant1 !== 'undefined') Assistant1.onTabChange(tab);
+  },
+
+  /* ---------------- Sidebar (INFORMATION PANEL) ---------------- */
+  _initSidebar(){
+    this.$('#btn-sidebar-toggle').addEventListener('click', ()=> this._setSidebarOpen(true));
+    this.$('#btn-info-toggle').addEventListener('click', ()=> this._setSidebarOpen(!this._sidebarOpen()));
+    this.$('#btn-sidebar-close').addEventListener('click', ()=> this._setSidebarOpen(false));
+    this.$('#btn-sidebar-fab').addEventListener('click', ()=> this._setSidebarOpen(true));
+    // Desktop: default open; mobile: default closed
+    this._setSidebarOpen(window.innerWidth >= 900);
+  },
+  _sidebarOpen(){ return !this.$('#sidebar').classList.contains('closed'); },
+  _setSidebarOpen(open){
+    this.$('#sidebar').classList.toggle('closed', !open);
+    this.$('#btn-sidebar-fab').classList.toggle('hidden', open);
+    setTimeout(()=> Scene1.onResize(), 400);
+  },
+  _renderSidebarForTab(tab){
+    const subtitleMap = {
+      apparatus: 'Apparatus overview',
+      setup: 'Configuring the experiment',
+      run: 'Reading the scales',
+      results: 'Theory & viva reference',
+    };
+    this.$('#sidebar-subtitle').textContent = subtitleMap[tab] || '';
+    const body = this.$('#sidebar-body');
+    const card = (icon, title, sub, html)=> `
+      <div class="info-card card-glass rounded-xl p-4">
+        <div class="flex items-center gap-2.5 mb-1.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center flex-none">
+            <i data-lucide="${icon}" class="w-4 h-4 text-cyan-300"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[13px] font-bold text-cyan-300 leading-tight">${title}</div>
+            <div class="text-[11px] text-cyan-500/70 italic leading-tight">${sub}</div>
+          </div>
+        </div>
+        <div class="text-[12.5px] text-slate-300 leading-relaxed">${html}</div>
+      </div>`;
+
+    let html = '';
+    if(tab === 'apparatus'){
+      html += card('square', 'U-Frame', 'Rigid steel body', 'Holds the anvil and sleeve in fixed alignment, giving the whole instrument its mechanical rigidity.');
+      html += card('circle-dot', 'Anvil', 'Fixed measuring face', 'A fixed stud the object rests against — this end never moves.');
+      html += card('ruler', 'Sleeve (Pitch Scale)', 'Main / linear scale', 'Engraved in mm (and 0.5 mm sub-divisions) along the barrel; read where the thimble\'s edge stops.');
+      html += card('disc', 'Thimble (Circular Scale)', '100 divisions', 'Rotates & translates with the spindle. One full turn advances the spindle by exactly one pitch.');
+      html += card('settings', 'Ratchet', 'Constant-torque stop', 'Slips with a click once safe pressure is reached — always finish with 3 clicks for a repeatable reading.');
+    } else if(tab === 'setup'){
+      html += card('sigma', 'Least Count', 'Pitch ÷ divisions', 'LC = Pitch ÷ 100. A 1&nbsp;mm pitch gives LC = 0.01&nbsp;mm; a 0.5&nbsp;mm pitch gives LC = 0.005&nbsp;mm.');
+      html += card('alert-triangle', 'Zero Error', 'Read before you measure', 'Close the jaws on nothing. <b>Positive</b>: circular zero sits below the index (subtract). <b>Negative</b>: it sits above (add back).');
+      html += card('package', 'Choosing an object', 'Hidden ground truth', 'Each specimen has a hidden true size — your job is to reveal it accurately with the instrument.');
+    } else if(tab === 'run'){
+      html += card('crosshair', 'Reading PSR', 'Main scale', 'PSR is the last graduation mark exposed by the thimble\'s edge, in mm.');
+      html += card('scan', 'Reading CSR', 'Circular scale', 'CSR is the division that lines up with the horizontal reference (index) line — use the Loupe view to be sure.');
+      html += card('shield-check', 'Auto-stop', 'No crushing', 'The spindle physically cannot pass through the specimen — once it makes contact, only the ratchet can "click" further.');
+    } else {
+      html += card('book-open', 'Backlash Error', 'Avoid direction reversal', 'Play between screw & nut from wear. Avoided by always turning the screw the <i>same</i> direction while approaching the object.');
+      html += card('calculator', 'Corrected Reading', 'Subtract algebraically', 'Corrected = Observed − Zero Error. A negative zero error is a negative number, so subtracting it adds its size back.');
+      html += card('sparkles', 'Why average readings?', 'Reduce random error', 'Repeat at 2–3 points/orientations; the mean cancels out small placement and reading errors.');
+    }
+    body.innerHTML = html;
+    lucide.createIcons();
+  },
+
+  /* ---------------- Header buttons (fullscreen / theme handled elsewhere) ---------------- */
+  _initHeaderButtons(){
+    const enterFs = ()=>{
+      const el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+      document.body.classList.add('fs-active');
+      this.$('#btn-exit-fs').classList.remove('hidden'); this.$('#btn-exit-fs').classList.add('flex');
+      setTimeout(()=>Scene1.onResize(), 200);
+    };
+    const exitFs = ()=>{
+      if(document.fullscreenElement || document.webkitFullscreenElement){
+        (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+      }
+      document.body.classList.remove('fs-active');
+      this.$('#btn-exit-fs').classList.add('hidden'); this.$('#btn-exit-fs').classList.remove('flex');
+      setTimeout(()=>Scene1.onResize(), 200);
+    };
+    this.$('#btn-fullscreen').addEventListener('click', enterFs);
+    this.$('#btn-exit-fs').addEventListener('click', exitFs);
+    document.addEventListener('fullscreenchange', ()=>{ if(!document.fullscreenElement) exitFs(); });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') exitFs(); });
+  },
+
+  /* ---------------- Setup tab controls ---------------- */
+  _wireSetupControls(){
+    this.$('#sel-pitch').addEventListener('change', e=>{
+      Physics1.setPitch(parseFloat(e.target.value));
+      this._refreshFormulaDisplays();
+      this.toast(`Pitch set to ${e.target.value} mm`, 'info');
+    });
+    this.$('#sel-zeroerror').addEventListener('change', e=>{
+      const div = Physics1.setZeroErrorMode(e.target.value);
+      Model1.setZeroErrorOffset((div/CFG.circularScaleDivisions)*Math.PI*2);
+      this.toast('Zero error updated', 'info');
+    });
+    const spawn = ()=>{
+      const key = this.$('#sel-object').value;
+      const info = TestObjects1.spawn(key);
+      Physics1.setObject(info.key, info.trueMm);
+      Physics1.openJaws();
+      this.toast(`Specimen loaded: ${info.label}`, 'success');
+    };
+    this.$('#sel-object').addEventListener('change', spawn);
+    spawn();
+    this.$('#btn-goto-run').addEventListener('click', ()=> this.switchTab('run'));
+  },
+
+  /* ---------------- Run tab controls ---------------- */
+  _wireRunControls(){
+    this.$('#btn-open-jaws').addEventListener('click', ()=>{
+      Physics1.openJaws(); Audio1.tick(); this.toast('Jaws opened', 'info');
+    });
+    this.$('#btn-turn-back').addEventListener('click', ()=>{ Physics1.turnBackStep(); Audio1.tick(); });
+    this.$('#btn-turn-fwd').addEventListener('click', ()=>{
+      const res = Physics1.turnFwdStep(); Audio1.tick();
+      if(res.hitMin) this._afterContact();
+    });
+    this.$('#btn-ratchet').addEventListener('click', ()=>{
+      const res = Physics1.ratchetClick(); Audio1.click(1);
+      this._updateClickCount(res.clicks);
+      if(Physics1.contactMade) this._afterContact();
+      if(res.clicks >= CFG.ratchetClicksRequired){
+        Audio1.success(); this.toast('Ratchet limit reached — safe to read.', 'success');
+      }
+    });
+    this.$('#btn-new-specimen').addEventListener('click', ()=>{
+      const key = this.$('#sel-object').value;
+      const info = TestObjects1.spawn(key);
+      Physics1.setObject(info.key, info.trueMm);
+      Physics1.openJaws();
+      this.toast(`New specimen: ${info.label}`, 'success');
+    });
+
+    // Dial slider: maps 0..1000 to gapMm 0..25 directly (closing = higher value)
+    const dial = this.$('#dial-rotate');
+    dial.addEventListener('input', ()=>{
+      const t = parseFloat(dial.value)/1000; // 0=open .. 1=closed
+      const gapMm = CFG.mainScaleRangeMm * (1-t);
+      Physics1.setRotationForGap(Math.max(gapMm, Physics1.minGapMm));
+      if(Physics1.contactMade) this._afterContact();
+    });
+  },
+
+  _afterContact(){ this.addBadge('contact', 'Specimen contacted — finish with the ratchet', 'good'); },
+  _updateClickCount(n){ const el=this.$('#click-count'); if(el) el.textContent = `${Math.min(n,CFG.ratchetClicksRequired)}/${CFG.ratchetClicksRequired}`; },
+
+  /* ---------------- Formula displays ---------------- */
+  _refreshFormulaDisplays(){
+    const lc = Physics1.LC.toFixed(3)+' mm';
+    const el = this.$('#setup-lc-value'); if(el) el.textContent = lc;
+  },
+
+  /* ---------------- HUD ---------------- */
+  updateHUD(state){
+    this.$('#hud-msr').textContent = state.PSR.toFixed(2);
+    this.$('#hud-csr').textContent = String(state.CSR);
+    this.$('#hud-total').textContent = state.observedReading.toFixed(3)+' mm';
+    this._updateClickCount(state.ratchetClicks);
+    const dial = this.$('#dial-rotate');
+    if(dial && document.activeElement !== dial){
+      const t = 1 - (state.gapMm / CFG.mainScaleRangeMm);
+      dial.value = String(Math.round(t*1000));
+    }
+    const note = this.$('#obs-zeroerror-note');
+    if(note) note.textContent = state.zeroErrorMm.toFixed(3)+' mm';
+  },
+
+  _bindPhysicsEvents(){
+    Physics1.on('change', s=> this.updateHUD(s));
+    Physics1.on('contact', ()=>{ this._afterContact(); Audio1.tick(); });
+  },
+
+  /* ---------------- Observation table ---------------- */
+  _renderObsTable(){
+    this.$$('.mode-btn').forEach(btn=>{
+      btn.classList.toggle('bg-cyan-400/15', btn.dataset.mode===this.obsMode);
+      btn.classList.toggle('text-cyan-300', btn.dataset.mode===this.obsMode);
+      btn.classList.toggle('text-slate-400', btn.dataset.mode!==this.obsMode);
+      btn.onclick = ()=>{ this.obsMode = btn.dataset.mode; this._renderObsTable(); };
+    });
+    const addBtn = this.$('#btn-add-row');
+    if(addBtn) addBtn.onclick = ()=> this._captureRow();
+
+    const tbody = this.$('#obs-tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    let sum=0, count=0;
+    this.obsRows.forEach((row,i)=>{
+      const tr = document.createElement('tr');
+      tr.dataset.rowId = row.id;
+      tr.className = 'border-t border-labborder';
+      const { observed, corrected } = this._computeRow(row);
+      if(corrected!=null){ sum+=corrected; count++; }
+      const psrCell = row.mode==='auto' ? `<td class="py-1.5">${row.psr.toFixed(2)}</td>`
+        : `<td class="py-1.5"><input class="obs-input w-14 text-center bg-[#0b1622] border border-labborder rounded px-1 py-0.5" type="number" step="0.5" data-id="${row.id}" data-field="psr" value="${row.psr==null?'':row.psr}" placeholder="?"/></td>`;
+      const csrCell = row.mode==='auto' ? `<td>${row.csr}</td>`
+        : `<td><input class="obs-input w-14 text-center bg-[#0b1622] border border-labborder rounded px-1 py-0.5" type="number" step="1" data-id="${row.id}" data-field="csr" value="${row.csr==null?'':row.csr}" placeholder="?"/></td>`;
+      tr.innerHTML = `<td class="py-1.5">${i+1}</td>${psrCell}${csrCell}
+        <td class="cell-observed">${observed!=null?observed.toFixed(3):'—'}</td>
+        <td class="cell-corrected text-cyan-300">${corrected!=null?corrected.toFixed(3):'—'}</td>
+        <td><button class="row-del text-slate-500 hover:text-red-400" data-del="${row.id}">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.obs-input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const row = this.obsRows.find(r=>r.id==inp.dataset.id); if(!row) return;
+        row[inp.dataset.field] = inp.value===''?null:parseFloat(inp.value);
+        const { observed, corrected } = this._computeRow(row);
+        const tr = tbody.querySelector(`tr[data-row-id="${row.id}"]`);
+        if(tr){
+          tr.querySelector('.cell-observed').textContent = observed!=null?observed.toFixed(3):'—';
+          tr.querySelector('.cell-corrected').textContent = corrected!=null?corrected.toFixed(3):'—';
+        }
+        this._refreshMean();
+      });
+    });
+    tbody.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ this.obsRows = this.obsRows.filter(r=>String(r.id)!==btn.dataset.del); this._renderObsTable(); });
+    });
+    const meanEl = this.$('#obs-mean'); if(meanEl) meanEl.textContent = count ? (sum/count).toFixed(3)+' mm' : '—';
+  },
+  _refreshMean(){
+    let sum=0,count=0;
+    this.obsRows.forEach(row=>{ const {corrected}=this._computeRow(row); if(corrected!=null){sum+=corrected;count++;} });
+    const meanEl = this.$('#obs-mean'); if(meanEl) meanEl.textContent = count ? (sum/count).toFixed(3)+' mm' : '—';
+  },
+  _captureRow(){
+    const s = Physics1.getState();
+    const row = { id: Date.now()+Math.random(), mode:this.obsMode, psr: this.obsMode==='auto'?s.PSR:null, csr: this.obsMode==='auto'?s.CSR:null };
+    this.obsRows.push(row); this._renderObsTable();
+    this.toast('Reading captured', 'success');
+  },
+  _computeRow(row){
+    const LC = Physics1.LC, ze = Physics1.zeroErrorMm;
+    const psr = row.psr==null?null:parseFloat(row.psr), csr = row.csr==null?null:parseFloat(row.csr);
+    let observed=null, corrected=null;
+    if(psr!=null && !isNaN(psr) && csr!=null && !isNaN(csr)){ observed=psr+csr*LC; corrected=observed-ze; }
+    return { observed, corrected };
+  },
+
+  /* ---------------- Toasts & badges ---------------- */
+  toast(msg, type){
+    const root = this.$('#toast-root');
+    const colors = { info:'border-cyan-400 text-cyan-300', success:'border-emerald-400 text-emerald-300', error:'border-red-400 text-red-300' };
+    const el = document.createElement('div');
+    el.className = `card-glass rounded-full px-4 py-2 text-[12px] font-semibold border ${colors[type]||colors.info}`;
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(()=>{ el.style.transition='opacity .25s,transform .25s'; el.style.opacity='0'; el.style.transform='translateY(-8px)'; setTimeout(()=>el.remove(),260); }, 2600);
+  },
+  addBadge(key, text, type){
+    this.badges[key] = { text, type };
+    this._renderBadges();
+    clearTimeout(this._badgeTimer);
+    this._badgeTimer = setTimeout(()=>{ delete this.badges[key]; this._renderBadges(); }, 4000);
+  },
+  _renderBadges(){
+    const root = this.$('#status-badges'); root.innerHTML='';
+    const colorMap = { good:'border-emerald-400 text-emerald-300', warn:'border-amber-400 text-amber-300' };
+    Object.values(this.badges).forEach(b=>{
+      const el = document.createElement('div');
+      el.className = `card-glass rounded-full px-3 py-1.5 text-[11px] font-bold border ${colorMap[b.type]||'border-labborder text-slate-300'}`;
+      el.textContent = b.text; root.appendChild(el);
+    });
+  },
+};
+
+/* ==========================================================================
+   SECTION: AI LAB ASSISTANT — guided steps, "Ask Lab AI" contextual chat,
+   and a searchable viva-voce Q&A bank.
+   ========================================================================== */
+const Assistant1 = (function(){
+  const $ = sel => document.querySelector(sel);
+
+  const GUIDE_STEPS = [
+    { key:'lc',      title:'1. Least Count & Pitch', body:'Open <b>2. SETUP</b> and pick a pitch. LC = Pitch ÷ 100 division. A 1&nbsp;mm pitch gives LC = 0.01&nbsp;mm.' },
+    { key:'zero',    title:'2. Zero Error', body:'Still in Setup, choose a zero-error mode. Then in Run, fully close the jaws (no object) and read the circular scale — that\'s your zero error.' },
+    { key:'place',   title:'3. Place the Object', body:'Pick a specimen in Setup, switch to <b>3. RUN EXPERIMENT</b>, click "Open Jaws", and bring the spindle up to the object.' },
+    { key:'read',    title:'4. Read MSR & CSR', body:'Use the ratchet for the last 3 clicks, then read PSR off the sleeve and CSR off the thimble — check the Loupe view if unsure.' },
+    { key:'correct', title:'5. Corrected Reading', body:'Corrected = (PSR + CSR×LC) − Zero Error. Head to <b>4. RESULTS</b> to log it and see the formula worked out.' },
+  ];
+
+  const VIVA_QA = [
+    { q:'What is the least count of a screw gauge?', a:'LC = Pitch ÷ (divisions on the circular scale). For 1 mm pitch and 100 divisions, LC = 0.01 mm.' },
+    { q:'Define pitch of a screw gauge.', a:'The linear distance the spindle advances in one complete rotation of the thimble.' },
+    { q:'What is zero error and its types?', a:'The reading shown when the jaws are fully closed with nothing between them (should read 0). Positive: circular zero is below the index line (subtract). Negative: it is above (add).' },
+    { q:'How do you correct for zero error?', a:'Corrected Reading = Observed Reading − Zero Error. A negative zero error, being negative, effectively adds its magnitude back.' },
+    { q:'What is backlash error?', a:'Lag/play between the screw and nut from wear, causing the spindle to not respond immediately on reversing direction. Avoided by always turning the screw the same way.' },
+    { q:'Why use the ratchet instead of the thimble to finish?', a:'The ratchet slips at a fixed, safe torque, giving consistent, repeatable pressure and protecting delicate specimens from being crushed.' },
+    { q:'Why click the ratchet 2-3 times before reading?', a:'One click may not represent a fully-engaged, repeatable contact. Three clicks ensures a consistent measuring pressure every time.' },
+    { q:'Why is a screw gauge more precise than a vernier caliper?', a:'Typical LC of 0.01 mm vs 0.02–0.1 mm for a vernier caliper — the screw thread converts one full turn into a very small, finely-subdivided linear displacement.' },
+    { q:'How do you find the volume of a sphere measured this way?', a:'Average several corrected diameter readings, take r = d/2, then V = (4/3)πr³ = (π/6)d³.' },
+  ];
+
+  function pushMsg(text, cls){
+    const wrap = $('#atab-guide');
+    const div = document.createElement('div');
+    div.className = `text-[12.5px] leading-relaxed rounded-xl px-3 py-2.5 mb-2.5 max-w-[92%] ${cls||'bg-[#101e30] border border-labborder text-slate-300'}`;
+    div.innerHTML = text;
+    wrap.appendChild(div);
+    wrap.parentElement.scrollTop = wrap.parentElement.scrollHeight;
+  }
+
+  function bumpBadge(){
+    const badge = $('#assistant-badge');
+    if($('#assistant-panel').classList.contains('closed')){
+      badge.textContent = String((parseInt(badge.textContent)||0)+1);
+      badge.classList.remove('hidden');
+    }
+  }
+
+  function renderGuideIntro(){
+    pushMsg(`<span class="text-cyan-300 font-bold text-[10px] tracking-widest block mb-1">GUIDE</span>Hi! I'm your Lab AI Assistant. I'll walk you through determining the diameter/thickness of a specimen with the screw gauge, step by step. Let's start with the least count.`, 'bg-cyan-400/10 border border-cyan-400/30 text-slate-200');
+    pushMsg(GUIDE_STEPS[0].body, 'bg-[#101e30] border border-labborder text-slate-300');
+  }
+
+  const shownSteps = new Set(['lc']);
+  function advanceGuideForTab(tab){
+    const tabToStep = { setup:'zero', run:'place', results:'correct' };
+    const key = tabToStep[tab];
+    if(key && !shownSteps.has(key)){
+      shownSteps.add(key);
+      const step = GUIDE_STEPS.find(s=>s.key===key);
+      if(step) pushMsg(`<span class="text-cyan-300 font-bold text-[10px] tracking-widest block mb-1">STEP</span>${step.body}`, 'bg-[#101e30] border border-labborder text-slate-300');
+      bumpBadge();
+    }
+    // "read" step piggybacks on "place" being shown, once the user is in Run and reaches contact
+    if(tab==='run' && Physics1.contactMade && !shownSteps.has('read')){
+      shownSteps.add('read');
+      const step = GUIDE_STEPS.find(s=>s.key==='read');
+      if(step) pushMsg(`<span class="text-cyan-300 font-bold text-[10px] tracking-widest block mb-1">STEP</span>${step.body}`, 'bg-[#101e30] border border-labborder text-slate-300');
+      bumpBadge();
+    }
+  }
+
+  /* ---------------- Ask Lab AI: contextual + keyword-matched responses ---------------- */
+  const KB = [
+    { kws:['least count','lc'], a: ()=> `Least Count (LC) = Pitch ÷ Circular Scale Divisions. Right now: LC = ${Physics1.pitchMm} ÷ 100 = <b class="text-cyan-300">${Physics1.LC.toFixed(3)} mm</b>.` },
+    { kws:['pitch'], a: ()=> `Pitch is how far the spindle moves in one full thimble rotation. It's currently set to <b class="text-cyan-300">${Physics1.pitchMm} mm</b> (change it in Setup).` },
+    { kws:['zero error','zero'], a: ()=> `Your current zero error is <b class="text-cyan-300">${Physics1.zeroErrorMm.toFixed(3)} mm</b> (mode: ${Physics1.zeroErrorMode}). Corrected Reading = Observed − Zero Error.` },
+    { kws:['backlash'], a: ()=> `Backlash error is play between the screw and nut. Avoid it by always turning the thimble in the <b>same direction</b> as you approach the object — never reverse mid-measurement.` },
+    { kws:['ratchet'], a: ()=> `The ratchet gives constant, repeatable pressure. Click it exactly <b class="text-cyan-300">3 times</b> once the spindle contacts the object before you take a reading.` },
+    { kws:['msr','psr','main scale'], a: ()=> `Your current PSR is <b class="text-cyan-300">${Physics1.PSR.toFixed(2)} mm</b> — the last graduation exposed by the thimble's edge.` },
+    { kws:['csr','circular'], a: ()=> `Your current CSR is <b class="text-cyan-300">${Physics1.CSR}</b> — the division aligned with the reference line on the thimble.` },
+    { kws:['reading','total','observed'], a: ()=> `Observed Reading = PSR + CSR×LC = ${Physics1.PSR.toFixed(2)} + ${Physics1.CSR}×${Physics1.LC.toFixed(3)} = <b class="text-cyan-300">${Physics1.observedReading.toFixed(3)} mm</b>.` },
+    { kws:['corrected'], a: ()=> `Corrected Reading = Observed − Zero Error = ${Physics1.observedReading.toFixed(3)} − (${Physics1.zeroErrorMm.toFixed(3)}) = <b class="text-cyan-300">${Physics1.correctedReading.toFixed(3)} mm</b>.` },
+    { kws:['volume','sphere'], a: ()=> `For a sphere: V = (4/3)πr³ = (π/6)d³, using the averaged corrected diameter as d.` },
+    { kws:['true','actual','answer','hidden'], a: ()=> `Nice try — the true specimen size stays hidden so you can practice measuring it yourself! Compare your corrected reading against your lab partner's or your teacher's key.` },
+    { kws:['stuck','help','contact','touch'], a: ()=> Physics1.contactMade
+        ? `The spindle is in contact with the specimen (${Physics1.ratchetClicks}/${CFG.ratchetClicksRequired} ratchet clicks). Finish clicking the ratchet, then read PSR and CSR.`
+        : `The spindle hasn't reached the specimen yet — drag the thimble, use the dial, or the turn buttons in <b>3. RUN EXPERIMENT</b>.` },
+  ];
+  function answer(question){
+    const q = question.toLowerCase();
+    for(const item of KB){ if(item.kws.some(k=>q.includes(k))) return item.a(); }
+    return `I don't have a canned answer for that yet — try asking about <i>least count</i>, <i>zero error</i>, <i>backlash</i>, <i>ratchet</i>, <i>MSR/CSR</i>, or <i>corrected reading</i>.`;
+  }
+
+  function initAsk(){
+    const panel = $('#atab-ask');
+    panel.innerHTML = `
+      <div class="flex-1 overflow-y-auto space-y-2 mb-2" id="ask-messages" style="max-height:calc(70vh - 190px)">
+        <div class="text-[12.5px] leading-relaxed rounded-xl px-3 py-2.5 bg-[#101e30] border border-labborder text-slate-300">
+          Ask me anything about the experiment — e.g. <i>"what's my zero error?"</i> or <i>"how do I calculate the corrected reading?"</i>
+        </div>
+      </div>
+      <div class="flex-none flex gap-2">
+        <input id="ask-input" type="text" placeholder="Ask Lab AI…" class="flex-1 bg-[#0b1622] border border-labborder rounded-lg px-3 py-2 text-[12.5px] focus:outline-none focus:border-labcyan" />
+        <button id="ask-send" class="w-10 h-10 flex-none rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 text-[#04222b] flex items-center justify-center"><i data-lucide="send" class="w-4 h-4"></i></button>
+      </div>`;
+    lucide.createIcons();
+    const send = ()=>{
+      const inp = $('#ask-input'); const val = inp.value.trim(); if(!val) return;
+      const msgs = $('#ask-messages');
+      const me = document.createElement('div');
+      me.className = 'text-[12.5px] rounded-xl px-3 py-2.5 bg-cyan-400/15 border border-cyan-400/30 text-slate-100 ml-6';
+      me.textContent = val; msgs.appendChild(me);
+      inp.value='';
+      const bot = document.createElement('div');
+      bot.className = 'text-[12.5px] leading-relaxed rounded-xl px-3 py-2.5 bg-[#101e30] border border-labborder text-slate-300 mr-6';
+      bot.innerHTML = answer(val); msgs.appendChild(bot);
+      msgs.scrollTop = msgs.scrollHeight;
+    };
+    $('#ask-send').addEventListener('click', send);
+    $('#ask-input').addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+  }
+
+  function initViva(){
+    const panel = $('#atab-viva');
+    panel.innerHTML = `<input id="viva-search" type="text" placeholder="Search viva-voce questions…" class="w-full bg-[#0b1622] border border-labborder rounded-full px-3.5 py-2 text-[12.5px] mb-2.5 focus:outline-none focus:border-labcyan" /><div id="viva-list" class="space-y-2"></div>`;
+    const renderList = (list)=>{
+      const root = $('#viva-list');
+      root.innerHTML = list.map((item,i)=>`
+        <div class="viva-item bg-[#101e30] border border-labborder rounded-lg overflow-hidden">
+          <button class="viva-q w-full text-left px-3 py-2.5 text-[12.5px] font-semibold text-slate-100 flex justify-between items-center gap-2" data-idx="${i}">
+            <span>${item.q}</span><i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-500 flex-none"></i>
+          </button>
+          <div class="viva-a hidden px-3 pb-2.5 text-[12px] text-slate-400 leading-relaxed">${item.a}</div>
+        </div>`).join('') || `<p class="text-slate-500 text-[12px]">No matches.</p>`;
+      lucide.createIcons();
+      root.querySelectorAll('.viva-q').forEach(btn=>{
+        btn.addEventListener('click', ()=> btn.nextElementSibling.classList.toggle('hidden'));
+      });
+    };
+    renderList(VIVA_QA);
+    $('#viva-search').addEventListener('input', e=>{
+      const q = e.target.value.trim().toLowerCase();
+      renderList(VIVA_QA.filter(i=> i.q.toLowerCase().includes(q) || i.a.toLowerCase().includes(q)));
+    });
+  }
+
+  return {
+    init(){
+      const fab = $('#assistant-fab'), panel = $('#assistant-panel');
+      fab.addEventListener('click', ()=>{ panel.classList.remove('closed'); $('#assistant-badge').classList.add('hidden'); $('#assistant-badge').textContent='0'; });
+      $('#btn-assistant-close').addEventListener('click', ()=> panel.classList.add('closed'));
+      document.getElementById('btn-assistant-toggle').addEventListener('click', ()=>{
+        panel.classList.toggle('closed');
+        if(!panel.classList.contains('closed')){ $('#assistant-badge').classList.add('hidden'); $('#assistant-badge').textContent='0'; }
+      });
+
+      document.querySelectorAll('.atab').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('.atab').forEach(b=>{
+            const active = b===btn;
+            b.classList.toggle('bg-cyan-400/10', active); b.classList.toggle('border-cyan-400/40', active); b.classList.toggle('text-cyan-300', active);
+            b.classList.toggle('bg-[#101e30]', !active); b.classList.toggle('border-labborder', !active); b.classList.toggle('text-slate-400', !active);
+          });
+          document.querySelectorAll('.atab-panel').forEach(p=> p.classList.toggle('hidden', p.dataset.atabPanel !== btn.dataset.atab));
+        });
+      });
+
+      renderGuideIntro();
+      initAsk();
+      initViva();
+      Physics1.on('contact', ()=> advanceGuideForTab('run'));
+    },
+    onTabChange(tab){ advanceGuideForTab(tab); },
+  };
+})();
+
+/* ==========================================================================
+   SECTION: MAIN — boot sequence, drag-to-rotate (mouse + touch via Pointer
+   Events), render loop.
+   ========================================================================== */
+(function(){
+  function boot(){
+    const canvas = document.getElementById('scene-canvas');
+    const loupeCanvas = document.getElementById('loupe-canvas');
+
+    Scene1.init(canvas);
+    Model1.build(Scene1.scene);
+    TestObjects1.init(Model1.root);
+    Loupe1.init(loupeCanvas);
+
+    Physics1.setPitch(CFG.defaultPitch);
+    Physics1.setZeroErrorMode('nil');
+    Physics1.on('change', s=> Model1.setKinematics(s.gapMm, s.totalRotationRad));
+    Model1.setKinematics(0,0);
+
+    UI1.init();
+    Assistant1.init();
+
+    initDragControls(canvas);
+
+    function loop(){
+      Scene1.render();
+      Loupe1.render();
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    const fill = document.getElementById('loader-fill');
+    if(fill) fill.style.width = '100%';
+    setTimeout(()=>{
+      const ls = document.getElementById('loading-screen');
+      if(ls){ ls.style.opacity = '0'; setTimeout(()=> ls.style.display='none', 500); }
+    }, 380);
+  }
+
+  function initDragControls(canvas){
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let dragging = false, lastAngle = 0, tickAccum = 0;
+
+    function pointerNDC(e){
+      const rect = canvas.getBoundingClientRect();
+      ndc.x = ((e.clientX-rect.left)/rect.width)*2-1;
+      ndc.y = -((e.clientY-rect.top)/rect.height)*2+1;
+      return ndc;
+    }
+    function screenAngleAtPointer(e){
+      const c3 = new THREE.Vector3();
+      Model1.thimbleGroup.getWorldPosition(c3);
+      const proj = c3.clone().project(Scene1.camera);
+      const rect = canvas.getBoundingClientRect();
+      const cx = (proj.x*0.5+0.5)*rect.width+rect.left;
+      const cy = (-proj.y*0.5+0.5)*rect.height+rect.top;
+      return Math.atan2(e.clientY-cy, e.clientX-cx);
+    }
+    function hitTestKnob(e){
+      pointerNDC(e);
+      raycaster.setFromCamera(ndc, Scene1.camera);
+      const hits = raycaster.intersectObjects([Model1.thimbleGroup, Model1.ratchet], true);
+      return hits.length>0;
+    }
+
+    canvas.addEventListener('pointerdown', (e)=>{
+      if(UI1.activeTab !== 'run') return; // thimble is only draggable while running the experiment
+      if(!hitTestKnob(e)) return;
+      dragging = true; tickAccum = 0; lastAngle = screenAngleAtPointer(e);
+      Scene1.controls.enabled = false;
+      canvas.setPointerCapture(e.pointerId);
+      canvas.style.cursor = 'grabbing';
+    });
+    window.addEventListener('pointermove', (e)=>{
+      if(!dragging) return;
+      const angle = screenAngleAtPointer(e);
+      let delta = angle - lastAngle;
+      while(delta > Math.PI) delta -= Math.PI*2;
+      while(delta < -Math.PI) delta += Math.PI*2;
+      lastAngle = angle;
+      const rotDelta = -delta;
+      const res = Physics1.rotateBy(rotDelta);
+      tickAccum += Math.abs(rotDelta);
+      if(tickAccum > 0.22){ tickAccum = 0; if(!res.hitMin) Audio1.tick(); }
+      if(res.hitMin && Physics1.contactMade) UI1._afterContact();
+    }, { passive:true });
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false; Scene1.controls.enabled = true; canvas.style.cursor = 'grab';
+      try{ canvas.releasePointerCapture(e.pointerId); }catch(_){}
+    }
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
