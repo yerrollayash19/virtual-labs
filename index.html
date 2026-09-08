@@ -17,11 +17,13 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    html { scroll-behavior: smooth; }
     body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 3rem; }
 
     /* Navigation Bar */
     nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; }
-    .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
+    .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .logo img { height: 40px; width: auto; border-radius: 8px; object-fit: contain; }
     .nav-links { display: flex; gap: 2rem; list-style: none; }
     .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; transition: 0.2s; }
     .nav-links a:hover { color: var(--primary); }
@@ -59,17 +61,28 @@
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-secondary { background: #ffffff; border: 1px solid var(--border); color: var(--text-main); }
     .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
+
+    /* Footer / About / Contact Sections */
+    .info-section { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .info-card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    .info-card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 0.75rem; }
+    .info-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+    footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2.5rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 1px solid var(--border); }
   </style>
 </head>
 <body>
 
   <!-- Navigation Bar -->
   <nav>
-    <div class="logo">⚗️ Virtual Lab</div>
+    <a href="#" class="logo">
+      <img src="logo.png" alt="Neon Atom Virtual Labs Logo" onerror="this.style.display='none'">
+      <span>Neon Atom Virtual Labs</span>
+    </a>
     <ul class="nav-links">
-      <li><a href="#labGrid">Home</a></li>
-      <li><a href="#labGrid">Physics</a></li>
+      <li><a href="#">Home</a></li>
       <li><a href="#labGrid">Experiments</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
     </ul>
   </nav>
 
@@ -184,6 +197,23 @@
     </div>
 
   </main>
+
+  <!-- About & Contact Section Draft -->
+  <section class="info-section">
+    <div class="info-card" id="about">
+      <h2>About Neon Atom Virtual Labs</h2>
+      <p>Neon Atom Virtual Labs is designed to bring interactive 3D physics simulations to Class 12 students and educators. Our mission is to make practical learning accessible anywhere without physical lab setups.</p>
+    </div>
+    
+    <div class="info-card" id="contact">
+      <h2>Contact Us</h2>
+      <p>Have questions, suggestions, or want to contribute new experiment models?<br><strong>Email:</strong> support@neonatom.lab<br><strong>GitHub:</strong> github.com/yerrollayash19/virtual-labs</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; Neon Atom Virtual Labs. Built for interactive science education.</p>
+  </footer>
 
   <script>
     let activeCategory = 'all';
