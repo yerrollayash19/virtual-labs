@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Virtual Lab - Class 12 Physics</title>
+  <title>Virtual Labs - Class 12 Physics</title>
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
@@ -22,8 +22,8 @@
 
     /* Navigation Bar */
     nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; }
-    .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
-    .logo img { height: 40px; width: auto; border-radius: 8px; object-fit: contain; }
+    .logo { display: flex; align-items: center; text-decoration: none; }
+    .logo img { height: 42px; width: auto; border-radius: 8px; object-fit: contain; }
     .nav-links { display: flex; gap: 2rem; list-style: none; }
     .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; transition: 0.2s; }
     .nav-links a:hover { color: var(--primary); }
@@ -75,8 +75,11 @@
   <!-- Navigation Bar -->
   <nav>
     <a href="#" class="logo">
-      <img src="logo.png" alt="Neon Atom Virtual Labs Logo" onerror="this.style.display='none'">
-      <span>Neon Atom Virtual Labs</span>
+      <img 
+        src="logo.png" 
+        alt="Virtual Labs Logo" 
+        onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yerrollayash19/virtual-labs/main/logo.png';"
+      >
     </a>
     <ul class="nav-links">
       <li><a href="#">Home</a></li>
@@ -88,7 +91,7 @@
 
   <!-- Hero Section -->
   <section class="hero">
-    <h1>VIRTUAL LAB: <span>CLASS 12 EXPERIMENTS</span></h1>
+    <h1>VIRTUAL LABS: <span>CLASS 12 EXPERIMENTS</span></h1>
     <p>Explore, Simulate, and Learn: Hands-on Science, Anytime, Anywhere</p>
   </section>
 
@@ -140,8 +143,8 @@
         <p>Verify the laws of combination (series and parallel) of resistances using a metre bridge.</p>
       </div>
       <div class="btn-group">
-        <a href="experiments/meter-bridge-combination.html" class="btn btn-primary">Start Lab</a>
-        <a href="experiments/meter-bridge-combination.html" download="meter-bridge-combination.html" class="btn btn-secondary">Source (.html)</a>
+        <a href="experiments/metre-bridge-combination.html" class="btn btn-primary">Start Lab</a>
+        <a href="experiments/metre-bridge-combination.html" download="metre-bridge-combination.html" class="btn btn-secondary">Source (.html)</a>
       </div>
     </div>
 
@@ -198,21 +201,21 @@
 
   </main>
 
-  <!-- About & Contact Section Draft -->
+  <!-- About & Contact Section -->
   <section class="info-section">
     <div class="info-card" id="about">
-      <h2>About Neon Atom Virtual Labs</h2>
-      <p>Neon Atom Virtual Labs is designed to bring interactive 3D physics simulations to Class 12 students and educators. Our mission is to make practical learning accessible anywhere without physical lab setups.</p>
+      <h2>About Virtual Labs</h2>
+      <p>Virtual Labs is designed to bring interactive 3D physics simulations to Class 12 students and educators. Our mission is to make practical learning accessible anywhere without physical lab setups.</p>
     </div>
     
     <div class="info-card" id="contact">
       <h2>Contact Us</h2>
-      <p>Have questions, suggestions, or want to contribute new experiment models?<br><strong>Email:</strong> support@neonatom.lab<br><strong>GitHub:</strong> github.com/yerrollayash19/virtual-labs</p>
+      <p>Have questions, suggestions, or want to contribute new experiment models?<br><strong>Email:</strong> support@virtuallabs.dev<br><strong>GitHub:</strong> github.com/yerrollayash19/virtual-labs</p>
     </div>
   </section>
 
   <footer>
-    <p>&copy; Neon Atom Virtual Labs. Built for interactive science education.</p>
+    <p>&copy; Virtual Labs. Built for interactive science education.</p>
   </footer>
 
   <script>
