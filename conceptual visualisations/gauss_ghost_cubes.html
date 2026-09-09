@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric Flux – Ghost Cube Symmetry (Gauss's Law)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --bg2: #1a1a1a; --bg3: #242424;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.05);
+    --text: #e8e6df; --text2: #a0a09a; --text3: #606060;
+    --blue: #4fc3f7; --purple: #b39ddb; --red: #ef5350; --green: #81c784;
+    --radius: 10px; --font: 'Segoe UI', system-ui, sans-serif; --mono: 'Courier New', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; padding: 24px 16px; }
+  h1 { text-align: center; font-size: 18px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  .sub { text-align: center; font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+  .tab { padding: 7px 16px; border: 0.5px solid var(--border); border-radius: 20px; font-size: 13px; background: var(--bg2); color: var(--text2); cursor: pointer; transition: all .15s; font-family: var(--font); }
+  .tab:hover { background: var(--bg3); }
+  .tab.active { background: rgba(79,195,247,0.15); color: var(--blue); border-color: rgba(79,195,247,0.4); font-weight: 500; }
+  .layout { display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start; max-width: 860px; margin: 0 auto; }
+  canvas { width: 100%; aspect-ratio: 1; border-radius: var(--radius); border: 0.5px solid var(--border); background: var(--bg2); display: block; }
+  .side { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .reveal-btn { width: 100%; padding: 9px; border: 0.5px solid var(--border); border-radius: 8px; background: var(--bg3); color: var(--text); font-size: 13px; cursor: pointer; transition: all .2s; font-family: var(--font); }
+  .reveal-btn:hover { background: rgba(179,157,219,0.1); border-color: rgba(179,157,219,0.4); }
+  .reveal-btn.active { background: rgba(179,157,219,0.15); color: var(--purple); border-color: rgba(179,157,219,0.5); }
+  .note { font-size: 11.5px; color: var(--text2); line-height: 1.7; margin-top: 12px; border-left: 2px solid var(--border2); padding-left: 10px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 8px; }
+  .stat-label { color: var(--text2); }
+  .stat-val { font-weight: 500; color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .hint { font-size: 11px; color: var(--text3); text-align: center; margin-top: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; justify-content: center; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .ldot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .divider { height: 1px; background: var(--border2); margin: 8px 0; }
+  .formula { font-family: var(--mono); font-size: 15px; color: var(--blue); text-align: center; padding: 6px 0; }
+  @media (max-width: 600px) {
+    .layout { grid-template-columns: 1fr; }
+    .side { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<h1>Electric Flux Through a Cube — Ghost Cube Symmetry</h1>
+<p class="sub">Gauss's Law · See why the charge position determines how many cubes share it</p>
+
+<div style="max-width:860px;margin:0 auto">
+  <div class="tabs">
+    <button class="tab active" onclick="setCase('face')">⬛ Face Center (2 cubes)</button>
+    <button class="tab" onclick="setCase('edge')">📐 Edge Center (4 cubes)</button>
+    <button class="tab" onclick="setCase('corner')">🔷 Corner (8 cubes)</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <canvas id="cv" width="440" height="440"></canvas>
+      <p class="hint">↻ Drag to rotate freely · Auto-spins until you touch it</p>
+      <div class="legend">
+        <div class="leg"><div class="ldot" style="background:rgba(79,195,247,0.4);border:1px solid #4fc3f7"></div>Our cube</div>
+        <div class="leg"><div class="ldot" style="background:rgba(179,157,219,0.3);border:1px dashed #b39ddb"></div>Ghost cube</div>
+        <div class="leg"><div class="ldot" style="background:#ef5350;border-radius:50%"></div>Charge q</div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <div class="card-title" id="case-title">Charge at Face Center</div>
+        <button class="reveal-btn" id="revBtn" onclick="toggleGhost()">👻 Show ghost cubes</button>
+        <div class="note" id="s-note"></div>
+      </div>
+      <div class="card">
+        <div class="stat-row"><span class="stat-label">Total cubes sharing charge</span><span class="stat-val" id="s-ncubes"></span></div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="stat-label">Total flux (this cube)</span><span class="stat-val" id="s-flux"></span></div>
+        <div class="stat-row"><span class="stat-label">Active faces</span><span class="stat-val" id="s-faces"></span></div>
+        <div class="stat-row"><span class="stat-label">Flux per active face</span><span class="stat-val" id="s-fflux"></span></div>
+        <div class="divider"></div>
+        <div class="formula" id="s-formula"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CASES = {
+  face: {
+    title: "Charge at Face Center",
+    chargePos: [1, 0.5, 0.5],
+    ghosts: [[1,0,0]],
+    nCubes: 2, flux: "q / 2ε₀", faces: "5 of 6", fflux: "q / 10ε₀",
+    formula: "Φ = q / 2ε₀",
+    note: "The charge sits exactly on the shared face (x = 1) between our cube and the ghost cube. They mirror each other perfectly — each captures exactly half the total flux q/ε₀.\n\nThe face where the charge sits has zero flux (field runs parallel to it), so the remaining 5 faces each get q/10ε₀."
+  },
+  edge: {
+    title: "Charge at Edge Center",
+    chargePos: [1, 1, 0.5],
+    ghosts: [[1,0,0],[0,1,0],[1,1,0]],
+    nCubes: 4, flux: "q / 4ε₀", faces: "4 of 6", fflux: "q / 16ε₀",
+    formula: "Φ = q / 4ε₀",
+    note: "The charge sits on the shared edge (x=1, y=1). Three ghost cubes complete a 4-cube ring around that edge.\n\nThe charge is at the center of the ring — perfect symmetry — so each cube gets q/4. The 2 faces touching the edge have zero flux; the remaining 4 faces share q/4ε₀ equally."
+  },
+  corner: {
+    title: "Charge at Corner",
+    chargePos: [1, 1, 1],
+    ghosts: [[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1]],
+    nCubes: 8, flux: "q / 8ε₀", faces: "3 of 6", fflux: "q / 24ε₀",
+    formula: "Φ = q / 8ε₀",
+    note: "7 ghost cubes complete a 2×2×2 block. The charge is at the exact center of this block — the dead-center corner shared by all 8 cubes.\n\nEach cube gets q/8. The 3 faces touching the corner have zero flux; only the 3 opposite faces carry flux = q/24ε₀ each."
+  }
+};
+
+let caseKey = 'face';
+let ghostAlpha = 0, targetAlpha = 0;
+let rotX = -0.42, rotY = 0.55;
+let dragging = false, lastMX = 0, lastMY = 0;
+let autoSpin = true;
+
+function setCase(k) {
+  caseKey = k;
+  ghostAlpha = 0; targetAlpha = 0;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['face','edge','corner'][i]===k));
+  const btn = document.getElementById('revBtn');
+  btn.textContent = '👻 Show ghost cubes';
+  btn.classList.remove('active');
+  updateInfo();
+}
+
+function toggleGhost() {
+  const show = targetAlpha < 0.5;
+  targetAlpha = show ? 1 : 0;
+  const btn = document.getElementById('revBtn');
+  btn.textContent = show ? '🙈 Hide ghost cubes' : '👻 Show ghost cubes';
+  btn.classList.toggle('active', show);
+}
+
+function updateInfo() {
+  const c = CASES[caseKey];
+  document.getElementById('case-title').textContent = c.title;
+  document.getElementById('s-ncubes').textContent = c.nCubes;
+  document.getElementById('s-flux').textContent = c.flux;
+  document.getElementById('s-faces').textContent = c.faces;
+  document.getElementById('s-fflux').textContent = c.fflux;
+  document.getElementById('s-formula').textContent = c.formula;
+  document.getElementById('s-note').textContent = c.note;
+}
+
+function rotPt(x, y, z, rx, ry) {
+  let x1 = x*Math.cos(ry) - z*Math.sin(ry);
+  let z1 = x*Math.sin(ry) + z*Math.cos(ry);
+  let y1 = y*Math.cos(rx) - z1*Math.sin(rx);
+  let z2 = y*Math.sin(rx) + z1*Math.cos(rx);
+  return [x1, y1, z2];
+}
+function prj(x, y, z, cx, cy, sc) {
+  return [cx + x*sc, cy - y*sc];
+}
+
+const VERTS = [[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]];
+const FACES = [[0,2,3,1],[4,5,7,6],[0,1,5,4],[2,6,7,3],[0,4,6,2],[1,3,7,5]];
+
+function getCenterOffset() {
+  const c = CASES[caseKey];
+  const all = [[0,0,0], ...c.ghosts];
+  let mx=0,my=0,mz=0;
+  for (const [ox,oy,oz] of all) { mx+=ox+0.5; my+=oy+0.5; mz+=oz+0.5; }
+  return [mx/all.length, my/all.length, mz/all.length];
+}
+
+function drawCube(ctx, ox, oy, oz, cx, cy, sc, rx, ry, alpha, isOurs, coff) {
+  const [cofx,cofy,cofz] = coff;
+  const vp = VERTS.map(([x,y,z]) => {
+    const [rx2,ry2,rz2] = rotPt(ox+x-cofx, oy+y-cofy, oz+z-cofz, rx, ry);
+    return { p: prj(rx2,ry2,rz2,cx,cy,sc), z: rz2 };
+  });
+  const facesZ = FACES.map((verts,fi) => {
+    const avgZ = verts.reduce((s,vi) => s+vp[vi].z, 0)/4;
+    return {verts, fi, avgZ};
+  }).sort((a,b) => a.avgZ - b.avgZ);
+
+  for (const face of facesZ) {
+    const ps = face.verts.map(vi => vp[vi].p);
+    ctx.beginPath();
+    ctx.moveTo(ps[0][0],ps[0][1]);
+    for (let i=1;i<ps.length;i++) ctx.lineTo(ps[i][0],ps[i][1]);
+    ctx.closePath();
+    if (isOurs) {
+      ctx.fillStyle = `rgba(79,195,247,${0.11*alpha})`;
+      ctx.strokeStyle = `rgba(79,195,247,${0.9*alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+    } else {
+      ctx.fillStyle = `rgba(179,157,219,${0.09*alpha})`;
+      ctx.strokeStyle = `rgba(179,157,219,${0.7*alpha})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,4]);
+    }
+    ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+
+function drawScene() {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  const cx = W/2, cy = H/2+10, sc = 100;
+  const c = CASES[caseKey];
+  const coff = getCenterOffset();
+  const [cofx,cofy,cofz] = coff;
+
+  const allCubes = [{ox:0,oy:0,oz:0,isOurs:true,alpha:1}];
+  for (const [gx,gy,gz] of c.ghosts) allCubes.push({ox:gx,oy:gy,oz:gz,isOurs:false,alpha:ghostAlpha});
+
+  allCubes.sort((a,b) => {
+    const [,,za] = rotPt(a.ox+0.5-cofx, a.oy+0.5-cofy, a.oz+0.5-cofz, rotX, rotY);
+    const [,,zb] = rotPt(b.ox+0.5-cofx, b.oy+0.5-cofy, b.oz+0.5-cofz, rotX, rotY);
+    return za - zb;
+  });
+
+  for (const cube of allCubes) {
+    if (!cube.isOurs && cube.alpha < 0.01) continue;
+    drawCube(ctx, cube.ox, cube.oy, cube.oz, cx, cy, sc, rotX, rotY, cube.alpha, cube.isOurs, coff);
+  }
+
+  // Charge
+  const [qx,qy,qz] = c.chargePos;
+  const [qrx2,qry2] = (() => {
+    const [a,b] = rotPt(qx-cofx, qy-cofy, qz-cofz, rotX, rotY);
+    return prj(a,b,0,cx,cy,sc);
+  })();
+  const grd = ctx.createRadialGradient(qrx2,qry2,0,qrx2,qry2,18);
+  grd.addColorStop(0,'rgba(239,83,80,0.55)'); grd.addColorStop(1,'rgba(239,83,80,0)');
+  ctx.beginPath(); ctx.arc(qrx2,qry2,18,0,Math.PI*2); ctx.fillStyle=grd; ctx.fill();
+  ctx.beginPath(); ctx.arc(qrx2,qry2,9,0,Math.PI*2);
+  ctx.fillStyle='#ef5350'; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('q', qrx2, qry2+0.5);
+
+  // Flux lines
+  const dirs = [];
+  for (let i=0;i<16;i++) {
+    const phi = Math.acos(1-2*(i+0.5)/16);
+    const theta = Math.PI*(1+Math.sqrt(5))*i;
+    dirs.push([Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta)]);
+  }
+  for (const [dx,dy,dz] of dirs) {
+    let t = Infinity;
+    const cx0=qx-cofx, cy0=qy-cofy, cz0=qz-cofz;
+    // find t to cube boundary (all cubes span up to ~1 unit from charge — approximate with half-unit)
+    if (dx!==0) t=Math.min(t, dx>0 ? (0.5-cx0)/dx : (-0.5-cx0)/dx);
+    if (dy!==0) t=Math.min(t, dy>0 ? (0.5-cy0)/dy : (-0.5-cy0)/dy);
+    if (dz!==0) t=Math.min(t, dz>0 ? (0.5-cz0)/dz : (-0.5-cz0)/dz);
+    t = Math.min(Math.abs(t), 0.9) * 0.55;
+    const ex=cx0+dx*t, ey=cy0+dy*t, ez=cz0+dz*t;
+    const [epx,epy] = (() => { const [a,b]=rotPt(ex,ey,ez,rotX,rotY); return prj(a,b,0,cx,cy,sc); })();
+    ctx.beginPath(); ctx.moveTo(qrx2,qry2); ctx.lineTo(epx,epy);
+    ctx.strokeStyle='rgba(129,199,132,0.28)'; ctx.lineWidth=0.9;
+    ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+    // arrowhead
+    const ang = Math.atan2(epy-qry2, epx-qrx2);
+    ctx.beginPath();
+    ctx.moveTo(epx, epy);
+    ctx.lineTo(epx-7*Math.cos(ang)+3*Math.sin(ang), epy-7*Math.sin(ang)-3*Math.cos(ang));
+    ctx.lineTo(epx-7*Math.cos(ang)-3*Math.sin(ang), epy-7*Math.sin(ang)+3*Math.cos(ang));
+    ctx.closePath(); ctx.fillStyle='rgba(129,199,132,0.4)'; ctx.fill();
+  }
+
+  // Mini axes
+  const axO_x = cx - sc*0.88, axO_y = cy + sc*0.78;
+  for (const [dx,dy,dz,lbl,col] of [[1,0,0,'x','#ef5350'],[0,1,0,'y','#4fc3f7'],[0,0,1,'z','#81c784']]) {
+    const [a,b] = rotPt(dx,dy,dz,rotX,rotY);
+    ctx.beginPath(); ctx.moveTo(axO_x,axO_y); ctx.lineTo(axO_x+a*30, axO_y-b*30);
+    ctx.strokeStyle=col; ctx.lineWidth=1.2; ctx.globalAlpha=0.55; ctx.stroke(); ctx.globalAlpha=1;
+    ctx.fillStyle=col; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(lbl, axO_x+a*36, axO_y-b*36);
+  }
+}
+
+function loop() {
+  ghostAlpha += (targetAlpha - ghostAlpha) * 0.07;
+  if (autoSpin) rotY += 0.007;
+  drawScene();
+  requestAnimationFrame(loop);
+}
+
+const cv2 = document.getElementById('cv');
+cv2.addEventListener('mousedown', e => { dragging=true; lastMX=e.clientX; lastMY=e.clientY; autoSpin=false; });
+cv2.addEventListener('touchstart', e => { dragging=true; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY; autoSpin=false; e.preventDefault(); }, {passive:false});
+window.addEventListener('mouseup', () => dragging=false);
+window.addEventListener('touchend', () => dragging=false);
+window.addEventListener('mousemove', e => { if(!dragging)return; rotY+=(e.clientX-lastMX)*0.013; rotX+=(e.clientY-lastMY)*0.013; lastMX=e.clientX; lastMY=e.clientY; });
+window.addEventListener('touchmove', e => { if(!dragging)return; rotY+=(e.touches[0].clientX-lastMX)*0.013; rotX+=(e.touches[0].clientY-lastMY)*0.013; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY; e.preventDefault(); }, {passive:false});
+
+updateInfo();
+loop();
+</script>
+</body>
+</html>

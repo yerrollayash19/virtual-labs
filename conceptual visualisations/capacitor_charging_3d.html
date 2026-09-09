@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Charging a Parallel Plate Capacitor — 3D Visualization</title>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --panel: #10151d;
+    --panel2: #141b25;
+    --line: #1f2833;
+    --text: #e8edf2;
+    --muted: #7f8ea3;
+    --copper: #c9884f;
+    --electron: #ff5c5c;
+    --positive: #4f8dff;
+    --negative: #ff5c5c;
+    --field: #ffd166;
+    --accent: #ffd166;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow:hidden;
+  }
+  #app{
+    display:flex; flex-direction:column; height:100vh; width:100vw;
+  }
+  header{
+    padding: 14px 20px 10px 20px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink:0;
+  }
+  header h1{
+    margin:0; font-size: 18px; font-weight:700; letter-spacing:0.2px;
+  }
+  header .sub{
+    color: var(--muted); font-size:12.5px; margin-top:3px; letter-spacing:0.3px;
+  }
+  #tabs{
+    display:flex; gap:8px; padding: 10px 20px; border-bottom:1px solid var(--line);
+    flex-shrink:0; background: var(--panel);
+  }
+  .tab{
+    flex:1; text-align:left; cursor:pointer; user-select:none;
+    background: var(--panel2); border:1px solid var(--line); border-radius:8px;
+    padding: 8px 12px; transition: all .15s ease;
+  }
+  .tab .tnum{
+    font-size:10.5px; color:var(--muted); letter-spacing:1px; font-weight:700;
+  }
+  .tab .ttitle{
+    font-size:12.5px; font-weight:600; margin-top:2px;
+  }
+  .tab.active{
+    background: linear-gradient(180deg, rgba(255,209,102,0.14), rgba(255,209,102,0.04));
+    border-color: rgba(255,209,102,0.55);
+  }
+  .tab.active .tnum{ color: var(--accent); }
+  .tab:hover{ border-color: rgba(255,209,102,0.35); }
+
+  #main{
+    flex:1; display:flex; min-height:0;
+  }
+  #canvas-wrap{
+    flex:1; position:relative; min-width:0;
+  }
+  #canvas-wrap canvas{ display:block; width:100%; height:100%; }
+  #hint{
+    position:absolute; left:14px; bottom:12px; font-size:11px; color: var(--muted);
+    background: rgba(10,14,20,0.55); padding:5px 9px; border-radius:6px; pointer-events:none;
+    border:1px solid var(--line);
+  }
+  #stagebadge{
+    position:absolute; left:14px; top:12px; font-size:11px; color: var(--accent);
+    background: rgba(10,14,20,0.65); padding:5px 10px; border-radius:6px;
+    border:1px solid rgba(255,209,102,0.3); letter-spacing:0.4px; font-weight:600;
+  }
+
+  #sidebar{
+    width: 372px; flex-shrink:0; border-left:1px solid var(--line);
+    background: var(--panel); padding: 16px 18px 14px 18px; overflow-y:auto;
+  }
+  #sidebar h2{
+    margin:0 0 8px 0; font-size:15.5px; font-weight:700; color:var(--text);
+  }
+  #sidebar p.desc{
+    font-size:12.8px; line-height:1.55; color:#c4cedb; margin:0 0 14px 0;
+  }
+  .readouts{
+    display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:14px;
+  }
+  .ro{
+    background: var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+  }
+  .ro .lbl{ font-size:10.5px; color:var(--muted); letter-spacing:0.4px; }
+  .ro .val{ font-size:15px; font-weight:700; margin-top:2px; font-variant-numeric: tabular-nums; }
+  .ro .val.q{ color: var(--field); }
+  .ro .val.v{ color: #a4e8b0; }
+  .ro .val.i{ color: var(--electron); }
+  .ro .val.t{ color: var(--muted); }
+
+  #chartbox{
+    background: var(--panel2); border:1px solid var(--line); border-radius:8px;
+    padding:10px; margin-bottom:14px;
+  }
+  #chartbox .lbl{ font-size:10.5px; color:var(--muted); margin-bottom:6px; letter-spacing:0.3px;}
+  #chartCanvas{ width:100%; height:110px; display:block; }
+  .chartlegend{ display:flex; gap:14px; margin-top:6px; font-size:10.5px; color:var(--muted); }
+  .chartlegend span{ display:inline-flex; align-items:center; gap:5px; }
+  .swatch{ width:10px; height:3px; border-radius:2px; display:inline-block; }
+
+  #legend{
+    display:flex; flex-direction:column; gap:6px; margin-bottom:14px;
+    font-size:11.5px; color:#c4cedb;
+  }
+  #legend .item{ display:flex; align-items:center; gap:8px; }
+  #legend .dot{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+
+  button#restartBtn{
+    width:100%; padding:9px; border-radius:8px; border:1px solid rgba(255,209,102,0.4);
+    background: rgba(255,209,102,0.10); color: var(--accent); font-size:12.5px; font-weight:600;
+    cursor:pointer; letter-spacing:0.3px;
+  }
+  button#restartBtn:hover{ background: rgba(255,209,102,0.18); }
+  button#restartBtn:disabled{ opacity:0.35; cursor:default; }
+
+  #formula{
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+    font-size:11.5px; color: var(--muted); line-height:1.7;
+  }
+  #formula b{ color:#c4cedb; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Charging a Parallel Plate Capacitor</h1>
+    <div class="sub">CLASS 12 PHYSICS · ELECTROSTATICS &amp; CURRENT ELECTRICITY · 3D VISUALIZATION</div>
+  </header>
+
+  <div id="tabs">
+    <div class="tab active" data-stage="1">
+      <div class="tnum">STAGE 1</div>
+      <div class="ttitle">Open Switch — Uncharged</div>
+    </div>
+    <div class="tab" data-stage="2">
+      <div class="tnum">STAGE 2</div>
+      <div class="ttitle">Switch Closed — Charging</div>
+    </div>
+    <div class="tab" data-stage="3">
+      <div class="tnum">STAGE 3</div>
+      <div class="ttitle">Fully Charged — Steady State</div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="canvas-wrap">
+      <div id="stagebadge">STAGE 1 / 3</div>
+      <div id="hint">drag to orbit &nbsp;·&nbsp; scroll to zoom</div>
+    </div>
+
+    <div id="sidebar">
+      <h2 id="sTitle">Before Closing the Switch</h2>
+      <p class="desc" id="sDesc"></p>
+
+      <div class="readouts">
+        <div class="ro"><div class="lbl">CHARGE Q</div><div class="val q" id="roQ">0 µC</div></div>
+        <div class="ro"><div class="lbl">CAPACITOR VOLTAGE Vc</div><div class="val v" id="roV">0 V</div></div>
+        <div class="ro"><div class="lbl">CIRCUIT CURRENT I</div><div class="val i" id="roI">0 µA</div></div>
+        <div class="ro"><div class="lbl">TIME t</div><div class="val t" id="roT">0.0 s</div></div>
+      </div>
+
+      <div id="chartbox">
+        <div class="lbl">Q(t) and I(t) during charging</div>
+        <canvas id="chartCanvas" width="320" height="110"></canvas>
+        <div class="chartlegend">
+          <span><i class="swatch" style="background:var(--field)"></i>Q / Q&#8320;</span>
+          <span><i class="swatch" style="background:var(--electron)"></i>I / I&#8320;</span>
+        </div>
+      </div>
+
+      <button id="restartBtn">↻ Restart charging animation</button>
+
+      <div id="legend">
+        <div class="item"><span class="dot" style="background:var(--electron)"></span> Electron flow in wire</div>
+        <div class="item"><span class="dot" style="background:var(--positive)"></span> Positive plate (deficit of electrons)</div>
+        <div class="item"><span class="dot" style="background:var(--negative)"></span> Negative plate (excess of electrons)</div>
+        <div class="item"><span class="dot" style="background:var(--field)"></span> Electric field lines between plates</div>
+        <div class="item"><span class="dot" style="background:var(--copper)"></span> Connecting wire</div>
+        <div class="item"><span class="dot" style="background:#eef2f6"></span> Ammeter (needle shows live current)</div>
+      </div>
+
+      <div id="formula">
+        <div><b>Q(t) = Q&#8320;(1 − e<sup>−t/RC</sup>)</b></div>
+        <div><b>I(t) = I&#8320; e<sup>−t/RC</sup></b>, where I&#8320; = EMF / R</div>
+        <div>Steady state: Vc = EMF, I → 0, energy stored U = ½QV</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+
+/* ---------------------------------------------------------------
+   PHYSICS MODEL (illustrative, textbook-style numbers)
+--------------------------------------------------------------- */
+const EMF   = 12;      // volts
+const CAP   = 10;      // microfarads
+const TAU   = 3.0;     // seconds (animation time-scale for RC)
+const QMAX  = CAP * EMF;      // 120 µC
+const I0    = EMF / (TAU / CAP); // = EMF * CAP / TAU  -> 40 µA (illustrative)
+
+function Qof(t){ return QMAX * (1 - Math.exp(-t/TAU)); }
+function Vof(t){ return EMF  * (1 - Math.exp(-t/TAU)); }
+function Iof(t){ return I0   * Math.exp(-t/TAU); }
+
+/* ---------------------------------------------------------------
+   STAGE TEXT
+--------------------------------------------------------------- */
+const STAGE_INFO = {
+  1: {
+    title: "Before Closing the Switch",
+    desc: "The battery is wired to the capacitor through an open switch. The circuit is incomplete, so no electrons can flow anywhere. Both plates are neutral, there is no electric field in the gap, and the potential difference across the capacitor is zero."
+  },
+  2: {
+    title: "Switch Closed — Capacitor Charging",
+    desc: "The instant the switch closes, the battery drives electrons from its negative terminal onto the right plate, making it negative. At the same time electrons are pulled off the left plate towards the positive terminal, leaving it positively charged. No charge crosses the gap — it only piles up on the two separate plates. Current is largest right after closing and dies away exponentially as the capacitor charges."
+  },
+  3: {
+    title: "Fully Charged — Steady State",
+    desc: "Once Vc equals the battery EMF, there is no potential difference left to push electrons any further, so the current drops to zero. The plates now hold equal and opposite charges +Q and −Q, sustaining a uniform field E = σ/ε₀ between them, even though nothing is flowing any more."
+  }
+};
+
+/* ---------------------------------------------------------------
+   THREE.JS SCENE SETUP
+--------------------------------------------------------------- */
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e14);
+scene.fog = new THREE.Fog(0x0a0e14, 14, 30);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+wrap.appendChild(renderer.domElement);
+
+function resize(){
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// lights
+scene.add(new THREE.AmbientLight(0x6b7a8f, 0.9));
+const key = new THREE.DirectionalLight(0xffffff, 1.0);
+key.position.set(6,9,6);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x4fd3ff, 0.35);
+fill.position.set(-6,3,-4);
+scene.add(fill);
+const rim = new THREE.PointLight(0xffd166, 0.5, 20);
+rim.position.set(0,4,-6);
+scene.add(rim);
+
+// floor grid
+const grid = new THREE.GridHelper(20, 20, 0x223042, 0x151c26);
+grid.position.y = -2.35;
+scene.add(grid);
+
+/* ---------- camera orbit controls (custom, no extra deps) ---------- */
+const camState = { theta: Math.PI - 0.2, phi: 1.25, radius: 9.5, target: new THREE.Vector3(0,0.6,0) };
+function updateCamera(){
+  camera.position.x = camState.target.x + camState.radius*Math.sin(camState.phi)*Math.sin(camState.theta);
+  camera.position.y = camState.target.y + camState.radius*Math.cos(camState.phi);
+  camera.position.z = camState.target.z + camState.radius*Math.sin(camState.phi)*Math.cos(camState.theta);
+  camera.lookAt(camState.target);
+}
+let dragging=false, lastX=0, lastY=0;
+renderer.domElement.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY;});
+window.addEventListener('pointerup', ()=>dragging=false);
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx = e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  camState.theta -= dx*0.006;
+  camState.phi   = Math.min(2.5, Math.max(0.5, camState.phi - dy*0.006));
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camState.radius = Math.min(20, Math.max(6, camState.radius + e.deltaY*0.01));
+},{passive:false});
+
+/* ---------------------------------------------------------------
+   MATERIALS
+--------------------------------------------------------------- */
+const matPlate   = new THREE.MeshStandardMaterial({color:0x9aa7b6, metalness:0.6, roughness:0.35});
+const matCopper  = new THREE.MeshStandardMaterial({color:0xc9884f, metalness:0.55, roughness:0.4});
+const matBattery = new THREE.MeshStandardMaterial({color:0x2c333d, metalness:0.3, roughness:0.6});
+const matElectron= new THREE.MeshStandardMaterial({color:0x6fe3ff, emissive:0x2fb8e6, emissiveIntensity:1.4, roughness:0.25});
+
+function makeGlowTexture(hex){
+  const size=128;
+  const cnv=document.createElement('canvas'); cnv.width=size; cnv.height=size;
+  const ctx=cnv.getContext('2d');
+  const grad=ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  grad.addColorStop(0, hex+'ff');
+  grad.addColorStop(0.45, hex+'99');
+  grad.addColorStop(1, hex+'00');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(cnv);
+}
+const electronGlowTex = makeGlowTexture('#ff5c5c');
+
+// circled +/- symbol texture, like the standard textbook charge notation
+function makeChargeSymbolTexture(sign, fill, ring, symbolColor){
+  const size=128;
+  const cnv=document.createElement('canvas'); cnv.width=size; cnv.height=size;
+  const ctx=cnv.getContext('2d');
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2-7,0,Math.PI*2);
+  ctx.fillStyle=fill; ctx.fill();
+  ctx.lineWidth=6; ctx.strokeStyle=ring; ctx.stroke();
+  ctx.fillStyle=symbolColor;
+  ctx.font='bold 66px sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(sign, size/2, size/2+3);
+  return new THREE.CanvasTexture(cnv);
+}
+const electronTex   = makeChargeSymbolTexture('–', '#2f6fed', '#dbe9ff', '#ffffff');
+const plateSymPosTex= makeChargeSymbolTexture('+', '#ff8a5c', '#7a3a1e', '#2a1206');
+const plateSymNegTex= makeChargeSymbolTexture('–', '#4fd3ff', '#0f5f78', '#062733');
+const matArm     = new THREE.MeshStandardMaterial({color:0xd7dee6, metalness:0.7, roughness:0.3});
+const matPost    = new THREE.MeshStandardMaterial({color:0x555f6b, metalness:0.6, roughness:0.4});
+
+/* ---------------------------------------------------------------
+   GEOMETRY: PLATES
+--------------------------------------------------------------- */
+const PLATE_GAP = 2.6;     // separation along X
+const PLATE_SIZE= 3.0;     // plate square size (Y-Z)
+const PLATE_TH  = 0.09;
+
+const plateLeft  = new THREE.Mesh(new THREE.BoxGeometry(PLATE_TH, PLATE_SIZE, PLATE_SIZE), matPlate);
+plateLeft.position.set(-PLATE_GAP/2, 0.6, 0);
+scene.add(plateLeft);
+
+const plateRight = new THREE.Mesh(new THREE.BoxGeometry(PLATE_TH, PLATE_SIZE, PLATE_SIZE), matPlate.clone());
+plateRight.position.set(PLATE_GAP/2, 0.6, 0);
+scene.add(plateRight);
+
+// thin edge highlight rims
+[plateLeft, plateRight].forEach(p=>{
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(p.geometry), new THREE.LineBasicMaterial({color:0x3a4656}));
+  p.add(edges);
+});
+
+/* ---------------------------------------------------------------
+   GEOMETRY: BATTERY
+--------------------------------------------------------------- */
+const battery = new THREE.Group();
+battery.position.set(0, -1.15, 3.2);
+scene.add(battery);
+
+const cell = new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,1.7,28), matBattery);
+cell.rotation.z = Math.PI/2;
+battery.add(cell);
+
+const capPos = new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.12,28), new THREE.MeshStandardMaterial({color:0x4f8dff, metalness:0.4, roughness:0.4}));
+capPos.rotation.z = Math.PI/2;
+capPos.position.x = -0.91;
+battery.add(capPos);
+
+const capNeg = new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.12,28), new THREE.MeshStandardMaterial({color:0x2a2f36, metalness:0.4, roughness:0.5}));
+capNeg.rotation.z = Math.PI/2;
+capNeg.position.x = 0.91;
+battery.add(capNeg);
+
+function makeTextSprite(text, color, size=64){
+  const cnv = document.createElement('canvas'); cnv.width=size; cnv.height=size;
+  const ctx = cnv.getContext('2d');
+  ctx.font = 'bold ' + Math.floor(size*0.62) + 'px sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text, size/2, size/2+2);
+  const tex = new THREE.CanvasTexture(cnv);
+  const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false});
+  const spr = new THREE.Sprite(mat);
+  return spr;
+}
+
+// A circle badge with a +/- symbol inside, like the standard textbook charge symbol
+function makeCircleBadgeTexture(symbol, bgHex, borderHex, symbolHex){
+  const size=128;
+  const cnv=document.createElement('canvas'); cnv.width=size; cnv.height=size;
+  const ctx=cnv.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2-8, 0, Math.PI*2);
+  ctx.fillStyle = bgHex;
+  ctx.fill();
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = borderHex;
+  ctx.stroke();
+  ctx.font = 'bold ' + Math.floor(size*0.58) + 'px sans-serif';
+  ctx.fillStyle = symbolHex;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(symbol, size/2, size/2+3);
+  return new THREE.CanvasTexture(cnv);
+}
+function makeBadgeSprite(tex, scale){
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false, depthTest:false}));
+  spr.scale.set(scale, scale, 1);
+  return spr;
+}
+const electronBadgeTex = makeCircleBadgeTexture('–', '#ff2d2d', '#ffffff', '#ffffff');
+const positiveBadgeTex = makeCircleBadgeTexture('+', '#2f6fed', '#ffffff', '#ffffff');
+
+const lblPlus = makeTextSprite('+', '#4f8dff');
+lblPlus.scale.set(0.4,0.4,1);
+lblPlus.position.set(-1.15, 0.55, 0);
+battery.add(lblPlus);
+
+const lblMinus = makeTextSprite('–', '#ff5c5c');
+lblMinus.scale.set(0.4,0.4,1);
+lblMinus.position.set(1.15, 0.55, 0);
+battery.add(lblMinus);
+
+// terminal posts sticking up from the battery caps, feeding into wires
+const termPostL = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,12), matPost);
+termPostL.position.set(-0.91, 0.5, 0);
+battery.add(termPostL);
+const termPostR = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,12), matPost);
+termPostR.position.set(0.91, 0.5, 0);
+battery.add(termPostR);
+
+const BATT_PLUS_TIP  = new THREE.Vector3(battery.position.x-0.91, battery.position.y+0.75, battery.position.z);
+const BATT_MINUS_TIP = new THREE.Vector3(battery.position.x+0.91, battery.position.y+0.75, battery.position.z);
+
+/* ---------------------------------------------------------------
+   SWITCH (inserted in the + terminal wire, near the battery)
+--------------------------------------------------------------- */
+const SWITCH_A = new THREE.Vector3(-1.15, 0.05, 2.1);   // fixed post (hinge)
+const SWITCH_B = new THREE.Vector3(-1.15, 0.05, 0.9);   // far post (contact)
+
+[SWITCH_A, SWITCH_B].forEach(p=>{
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.35,12), matPost);
+  post.position.copy(p); post.position.y -= 0.15;
+  scene.add(post);
+});
+
+const armLen = SWITCH_A.distanceTo(SWITCH_B);
+const armGeo = new THREE.CylinderGeometry(0.045,0.045,armLen,12);
+armGeo.rotateZ(Math.PI/2);
+armGeo.translate(armLen/2,0,0);
+const switchArm = new THREE.Mesh(armGeo, matArm);
+switchArm.position.copy(SWITCH_A);
+scene.add(switchArm);
+
+const OPEN_ANGLE = 0.65;   // radians the arm lifts when open
+
+/* ---------------------------------------------------------------
+   WIRES (tubes along curved paths)
+--------------------------------------------------------------- */
+function tubeFromPoints(pts, color){
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const geo = new THREE.TubeGeometry(curve, 40, 0.045, 10, false);
+  const mesh = new THREE.Mesh(geo, matCopper);
+  scene.add(mesh);
+  return curve;
+}
+
+// Wire A: battery(+) -> switch A  (static copper, always drawn)
+tubeFromPoints([
+  BATT_PLUS_TIP,
+  new THREE.Vector3(-1.15, 0.9, 2.9),
+  SWITCH_A
+]);
+
+// Wire A continues: switch B -> plate Left (top-back edge)
+const plateLeftAttach = new THREE.Vector3(-PLATE_GAP/2, 2.05, 0.9);
+tubeFromPoints([
+  SWITCH_B,
+  new THREE.Vector3(-1.15, 1.3, 0.3),
+  plateLeftAttach
+]);
+
+// Wire B: battery(-) -> plate Right (top-back edge), no switch
+const plateRightAttach = new THREE.Vector3(PLATE_GAP/2, 2.05, 0.9);
+tubeFromPoints([
+  BATT_MINUS_TIP,
+  new THREE.Vector3(1.15, 0.9, 2.9),
+  new THREE.Vector3(1.15, 1.6, 1.6),
+  plateRightAttach
+]);
+
+// Full electron-path curves (used for animating electrons; matches the wire geometry above)
+const curveA = new THREE.CatmullRomCurve3([   // plateLeft side <-> battery(+), electrons travel plate->battery
+  plateLeftAttach,
+  new THREE.Vector3(-1.15, 1.3, 0.3),
+  SWITCH_B, SWITCH_A,
+  new THREE.Vector3(-1.15, 0.9, 2.9),
+  BATT_PLUS_TIP
+]);
+const curveB = new THREE.CatmullRomCurve3([   // battery(-) <-> plateRight, electrons travel battery->plate
+  BATT_MINUS_TIP,
+  new THREE.Vector3(1.15, 0.9, 2.9),
+  new THREE.Vector3(1.15, 1.6, 1.6),
+  plateRightAttach
+]);
+
+/* ---------------------------------------------------------------
+   AMMETER — inserted in the wire, needle deflects with current
+--------------------------------------------------------------- */
+const meterPos = new THREE.Vector3(1.15, 1.62, 1.62);
+const meterGroup = new THREE.Group();
+meterGroup.position.copy(meterPos);
+meterGroup.rotation.y = -0.5;
+scene.add(meterGroup);
+
+function makeDialTexture(){
+  const size=256;
+  const cnv=document.createElement('canvas'); cnv.width=size; cnv.height=size;
+  const ctx=cnv.getContext('2d');
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2-6,0,Math.PI*2);
+  ctx.fillStyle = '#eef2f6'; ctx.fill();
+  ctx.lineWidth=7; ctx.strokeStyle='#26313d'; ctx.stroke();
+  ctx.strokeStyle = '#5a6675'; ctx.lineWidth=3;
+  for(let i=0;i<=8;i++){
+    const a = Math.PI*(1.15 + i*(1.7/8));
+    const r1=size*0.33, r2=size*0.42;
+    const cx=size/2, cy=size/2+size*0.05;
+    ctx.beginPath();
+    ctx.moveTo(cx+r1*Math.cos(a), cy+r1*Math.sin(a));
+    ctx.lineTo(cx+r2*Math.cos(a), cy+r2*Math.sin(a));
+    ctx.stroke();
+  }
+  ctx.fillStyle='#26313d';
+  ctx.font='bold 52px sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('A', size/2, size/2+size*0.20);
+  return new THREE.CanvasTexture(cnv);
+}
+const dialFace = new THREE.Mesh(
+  new THREE.CircleGeometry(0.36, 32),
+  new THREE.MeshBasicMaterial({map: makeDialTexture()})
+);
+meterGroup.add(dialFace);
+const dialRim = new THREE.Mesh(new THREE.TorusGeometry(0.36,0.028,10,32), new THREE.MeshStandardMaterial({color:0x555f6b, metalness:0.7, roughness:0.3}));
+meterGroup.add(dialRim);
+
+const needlePivot = new THREE.Object3D();
+needlePivot.position.set(0,-0.03,0.01);
+meterGroup.add(needlePivot);
+const needle = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.022,0.01), new THREE.MeshStandardMaterial({color:0xff5c5c, emissive:0x661414, emissiveIntensity:0.4}));
+needle.position.x = 0.12;
+needlePivot.add(needle);
+const needleCap = new THREE.Mesh(new THREE.CircleGeometry(0.03,16), new THREE.MeshStandardMaterial({color:0x2a313a}));
+needleCap.position.z = 0.015;
+needlePivot.add(needleCap);
+
+const NEEDLE_MIN = -1.05, NEEDLE_MAX = 1.05; // rest (0A) -> full deflection
+needlePivot.rotation.z = NEEDLE_MIN;
+
+// small stands connecting the meter to the wire, purely visual
+const meterStandGeo = new THREE.CylinderGeometry(0.03,0.03,0.42,8);
+const standTop = new THREE.Mesh(meterStandGeo, matPost);
+standTop.position.set(meterPos.x-0.05, meterPos.y+0.36, meterPos.z-0.1);
+scene.add(standTop);
+
+const ammeterLabel = makeDynamicSprite('#dfe6ee');
+ammeterLabel.sprite.scale.set(1.15,0.42,1);
+ammeterLabel.sprite.position.set(meterPos.x, meterPos.y-0.62, meterPos.z);
+scene.add(ammeterLabel.sprite);
+setDynamicText(ammeterLabel, 'I = 0.0 µA');
+
+function lerp(a,b,t){ return a + (b-a)*t; }
+function updateAmmeter(I, frac){
+  const f = Math.max(0, Math.min(1, frac||0));
+  needlePivot.rotation.z = lerp(NEEDLE_MIN, NEEDLE_MAX, f);
+  setDynamicText(ammeterLabel, 'I = ' + (I||0).toFixed(1) + ' µA');
+}
+
+/* ---------------------------------------------------------------
+   ELECTRONS
+--------------------------------------------------------------- */
+const ELECTRON_SIZE = 0.36;   // fixed size — only the count/spacing changes
+const ELECTRON_GAP  = 0.58;   // desired distance between electron centers along the wire
+
+function makeElectron(u){
+  const m = makeBadgeSprite(electronBadgeTex, ELECTRON_SIZE);
+  m.userData.u = u;
+  m.userData.baseScale = ELECTRON_SIZE;
+  m.userData.pulsePhase = Math.random()*Math.PI*2;
+  scene.add(m);
+  return m;
+}
+const N_A = Math.max(5, Math.round(curveA.getLength() / ELECTRON_GAP));
+const N_B = Math.max(5, Math.round(curveB.getLength() / ELECTRON_GAP));
+const electronsA = [], electronsB = [];
+for(let i=0;i<N_A;i++) electronsA.push(makeElectron(i/N_A));
+for(let i=0;i<N_B;i++) electronsB.push(makeElectron(i/N_B));
+
+/* ---------------------------------------------------------------
+   CHARGE SYMBOLS ON PLATE FACES
+--------------------------------------------------------------- */
+const chargeSymbolsLeft = [], chargeSymbolsRight = [];
+const GRID = 6;
+for(let iy=0; iy<GRID; iy++){
+  for(let iz=0; iz<GRID; iz++){
+    const y = 0.6 + (iy - (GRID-1)/2) * (PLATE_SIZE/GRID) * 0.78;
+    const z = (iz - (GRID-1)/2) * (PLATE_SIZE/GRID) * 0.78;
+
+    // inner face (facing the gap) + outer face (facing away) so the buildup reads from any angle
+    [0.09, -0.09].forEach(offset=>{
+      const sL = makeBadgeSprite(positiveBadgeTex, 0.3);
+      sL.position.set(-PLATE_GAP/2 + offset, y, z);
+      sL.material.opacity = 0;
+      scene.add(sL); chargeSymbolsLeft.push(sL);
+
+      const sR = makeBadgeSprite(electronBadgeTex, 0.3);
+      sR.position.set(PLATE_GAP/2 - offset, y, z);
+      sR.material.opacity = 0;
+      scene.add(sR); chargeSymbolsRight.push(sR);
+    });
+  }
+}
+
+/* ---------------------------------------------------------------
+   FLOATING CHARGE COUNTERS ABOVE EACH PLATE (fun, kid-friendly readout)
+--------------------------------------------------------------- */
+function makeDynamicSprite(color){
+  const cnv=document.createElement('canvas'); cnv.width=256; cnv.height=96;
+  const ctx=cnv.getContext('2d');
+  const tex=new THREE.CanvasTexture(cnv);
+  const mat=new THREE.SpriteMaterial({map:tex, transparent:true, depthWrite:false});
+  const spr=new THREE.Sprite(mat);
+  spr.scale.set(1.4,0.52,1);
+  return {sprite:spr, canvas:cnv, ctx:ctx, tex:tex, color:color};
+}
+function setDynamicText(obj, text){
+  const {canvas, ctx, tex, color} = obj;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.font = 'bold 46px sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text, canvas.width/2, canvas.height/2);
+  tex.needsUpdate = true;
+}
+const counterLeft  = makeDynamicSprite('#4f8dff');
+counterLeft.sprite.position.set(-PLATE_GAP/2, 2.55, 0);
+scene.add(counterLeft.sprite);
+const counterRight = makeDynamicSprite('#ff5c5c');
+counterRight.sprite.position.set(PLATE_GAP/2, 2.55, 0);
+scene.add(counterRight.sprite);
+setDynamicText(counterLeft, '+0 µC');
+setDynamicText(counterRight, '−0 µC');
+
+/* ---------------------------------------------------------------
+   FIELD ARROWS BETWEEN PLATES
+--------------------------------------------------------------- */
+const fieldArrows = [];
+const FGRID = 4;
+for(let iy=0; iy<FGRID; iy++){
+  for(let iz=0; iz<FGRID; iz++){
+    const y = 0.6 + (iy - (FGRID-1)/2) * 0.72;
+    const z = (iz - (FGRID-1)/2) * 0.72;
+    const origin = new THREE.Vector3(-PLATE_GAP/2 + 0.25, y, z);
+    const dir = new THREE.Vector3(1,0,0);
+    const len = PLATE_GAP - 0.5;
+    const arrow = new THREE.ArrowHelper(dir, origin, len, 0xffd166, 0.2, 0.1);
+    arrow.line.material.transparent = true;
+    arrow.cone.material.transparent = true;
+    arrow.userData.len = len;
+    scene.add(arrow);
+    fieldArrows.push(arrow);
+  }
+}
+
+/* ---------------------------------------------------------------
+   STAGE STATE MACHINE
+--------------------------------------------------------------- */
+let stage = 1;
+let chargeTime = 0;      // elapsed seconds within the charging simulation
+const clock = new THREE.Clock();
+
+const N_SYMBOLS = chargeSymbolsLeft.length;
+function setChargeVisuals(fraction, Qvalue){
+  // reveal the +/- symbols one at a time, with the newest one popping in bigger then settling
+  const exact = fraction * N_SYMBOLS;
+  const revealCount = Math.floor(exact);
+  const growing = exact - revealCount; // 0..1 progress of the next symbol popping in
+
+  for(let i=0;i<N_SYMBOLS;i++){
+    let scale, opacity;
+    if(i < revealCount){
+      opacity = 1;
+      scale = 0.3;
+    } else if(i === revealCount && growing > 0){
+      opacity = 1;
+      // little overshoot bounce: grows past target then settles
+      const bounce = growing < 0.7 ? (growing/0.7) : (1 - (growing-0.7)/0.7*0.18);
+      scale = 0.3 * Math.min(1.22, bounce);
+    } else {
+      opacity = 0;
+      scale = 0.001;
+    }
+    chargeSymbolsLeft[i].material.opacity = opacity;
+    chargeSymbolsLeft[i].scale.set(scale,scale,1);
+    chargeSymbolsRight[i].material.opacity = opacity;
+    chargeSymbolsRight[i].scale.set(scale,scale,1);
+  }
+
+  // tint the plates themselves so the buildup of charge is obvious at a glance
+  plateLeft.material.emissive.setHex(0x4f8dff);
+  plateLeft.material.emissiveIntensity = 0.55*fraction;
+  plateRight.material.emissive.setHex(0xff5c5c);
+  plateRight.material.emissiveIntensity = 0.55*fraction;
+
+  fieldArrows.forEach(a=>{
+    const c = new THREE.Color(0x2a3442).lerp(new THREE.Color(0xffd166), fraction);
+    a.setColor(c);
+    a.line.material.opacity = 0.2 + 0.8*fraction;
+    a.cone.material.opacity = 0.2 + 0.8*fraction;
+    // arrowhead grows visibly bigger as the field strengthens
+    a.setLength(a.userData.len, 0.14 + 0.22*fraction, 0.07 + 0.12*fraction);
+    a.visible = fraction > 0.015;
+  });
+
+  const q = Math.round(Qvalue||0);
+  setDynamicText(counterLeft,  '+'+q+' µC');
+  setDynamicText(counterRight, '−'+q+' µC');
+}
+
+function setSwitch(closed){
+  switchArm.rotation.z = closed ? 0 : -OPEN_ANGLE;
+}
+
+function setElectronsVisible(v){
+  electronsA.concat(electronsB).forEach(m=> m.visible = v);
+}
+
+function goStage(n){
+  stage = n;
+  document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', +t.dataset.stage===n));
+  document.getElementById('stagebadge').textContent = 'STAGE ' + n + ' / 3';
+  document.getElementById('sTitle').textContent = STAGE_INFO[n].title;
+  document.getElementById('sDesc').textContent  = STAGE_INFO[n].desc;
+  document.getElementById('restartBtn').disabled = (n !== 2);
+
+  if(n===1){
+    chargeTime = 0;
+    setSwitch(false);
+    setElectronsVisible(false);
+    setChargeVisuals(0, 0);
+    updateAmmeter(0, 0);
+  } else if(n===2){
+    chargeTime = 0;
+    setSwitch(true);
+    setElectronsVisible(true);
+    setChargeVisuals(0, 0);
+    updateAmmeter(0, 1);
+  } else if(n===3){
+    chargeTime = 5*TAU + 2; // effectively settled
+    setSwitch(true);
+    setElectronsVisible(true);
+    setChargeVisuals(1, QMAX);
+    updateAmmeter(0, 0);
+  }
+  updateReadouts();
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=> goStage(+t.dataset.stage));
+});
+document.getElementById('restartBtn').addEventListener('click', ()=>{ if(stage===2) chargeTime = 0; });
+
+/* ---------------------------------------------------------------
+   READOUTS + CHART
+--------------------------------------------------------------- */
+const roQ=document.getElementById('roQ'), roV=document.getElementById('roV'),
+      roI=document.getElementById('roI'), roT=document.getElementById('roT');
+
+function updateReadouts(){
+  let Q=0,V=0,I=0,t=chargeTime;
+  if(stage===1){ Q=0;V=0;I=0;t=0; }
+  else if(stage===2){ Q=Qof(chargeTime); V=Vof(chargeTime); I=Iof(chargeTime); }
+  else { Q=QMAX; V=EMF; I=0; t=chargeTime; }
+  roQ.textContent = Q.toFixed(1)+' µC';
+  roV.textContent = V.toFixed(2)+' V';
+  roI.textContent = I.toFixed(1)+' µA';
+  roT.textContent = t.toFixed(1)+' s';
+}
+
+const chartCanvas = document.getElementById('chartCanvas');
+const ctx2d = chartCanvas.getContext('2d');
+function drawChart(){
+  const W=chartCanvas.width, H=chartCanvas.height;
+  ctx2d.clearRect(0,0,W,H);
+  const padL=6,padR=6,padT=8,padB=14;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const domain = 5*TAU;
+
+  // axes
+  ctx2d.strokeStyle = '#28323f'; ctx2d.lineWidth=1;
+  ctx2d.beginPath();
+  ctx2d.moveTo(padL, padT); ctx2d.lineTo(padL, H-padB); ctx2d.lineTo(W-padR, H-padB);
+  ctx2d.stroke();
+
+  function plotCurve(fn, color){
+    ctx2d.beginPath();
+    for(let i=0;i<=100;i++){
+      const t = domain*i/100;
+      const val = fn(t);
+      const x = padL + plotW * (t/domain);
+      const y = H-padB - plotH*val;
+      if(i===0) ctx2d.moveTo(x,y); else ctx2d.lineTo(x,y);
+    }
+    ctx2d.strokeStyle = color; ctx2d.lineWidth=1.8; ctx2d.stroke();
+  }
+  plotCurve(t=>1-Math.exp(-t/TAU), '#ffd166');   // Q/Qmax
+  plotCurve(t=>Math.exp(-t/TAU), '#ff5c5c');     // I/I0
+
+  // marker
+  if(stage!==1){
+    const tm = Math.min(chargeTime, domain);
+    const x = padL + plotW*(tm/domain);
+    ctx2d.strokeStyle='rgba(232,237,242,0.55)'; ctx2d.lineWidth=1;
+    ctx2d.beginPath(); ctx2d.moveTo(x,padT); ctx2d.lineTo(x,H-padB); ctx2d.stroke();
+  }
+}
+
+/* ---------------------------------------------------------------
+   ANIMATE
+--------------------------------------------------------------- */
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  updateCamera();
+
+  if(stage===2){
+    chargeTime += dt;
+    const frac = Iof(chargeTime)/I0;      // 1 -> 0
+    const qfrac = Qof(chargeTime)/QMAX;   // 0 -> 1
+    setChargeVisuals(qfrac, Qof(chargeTime));
+    updateAmmeter(Iof(chargeTime), frac);
+
+    // speed follows the actual current and genuinely stops once charging is done
+    const settled = chargeTime > 6*TAU;
+    const speed = settled ? 0 : 0.7*frac;
+    electronsA.forEach(m=>{
+      m.userData.u = (m.userData.u + speed*dt*0.5) % 1;
+      curveA.getPointAt(m.userData.u, m.position);
+    });
+    electronsB.forEach(m=>{
+      m.userData.u = (m.userData.u + speed*dt*0.5) % 1;
+      curveB.getPointAt(m.userData.u, m.position);
+    });
+    updateReadouts();
+  } else if(stage===3){
+    electronsA.forEach(m=> curveA.getPointAt(m.userData.u, m.position));
+    electronsB.forEach(m=> curveB.getPointAt(m.userData.u, m.position));
+  }
+
+  // gentle pulsing on every electron so motion "pops" visually for young viewers
+  const pulseT = performance.now()*0.004;
+  electronsA.concat(electronsB).forEach(m=>{
+    const s = m.userData.baseScale * (1 + 0.14*Math.sin(pulseT + m.userData.pulsePhase));
+    m.scale.set(s,s,1);
+  });
+
+  drawChart();
+  renderer.render(scene, camera);
+}
+
+resize();
+goStage(1);
+animate();
+
+})();
+</script>
+</body>
+</html>
