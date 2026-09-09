@@ -3,161 +3,492 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physics Virtual Lab & Interactive Visualizations</title>
+    <title>Physics Interactive Visualizations & Virtual Lab</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #38bdf8;
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-cyan: #38bdf8;
+            --accent-purple: #818cf8;
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
-            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
             color: var(--text-main);
-            margin: 0;
-            padding: 2rem;
-            display: flex;
-            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Canvas Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
         }
 
         .container {
-            max-width: 800px;
-            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
-        h1 {
-            color: var(--accent);
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 0.5rem;
+        /* Header & Hero Area */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
         }
 
-        p.subtitle {
+        header p {
             color: var(--text-sub);
-            margin-bottom: 2rem;
-            font-size: 1rem;
+            font-size: 1.1rem;
         }
 
-        .chapter-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+        /* Search & Filter Bar */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem;
             border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--text-sub);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+        }
+
+        /* Grid Layout & Cards */
+        .chapter-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         .chapter-title {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: var(--accent);
-            font-size: 1.25rem;
+            font-size: 1.4rem;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.25rem;
         }
 
-        .section-title {
-            color: var(--text-sub);
+        .subsection-title {
             font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--accent-purple);
+            margin: 1rem 0 0.5rem 0;
+            font-weight: 700;
         }
 
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
         }
 
-        li {
-            margin: 0.5rem 0;
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        a {
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+        }
+
+        .card-info h4 {
+            font-size: 1rem;
             color: var(--text-main);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
+            margin-bottom: 0.25rem;
         }
 
-        a:hover {
-            color: var(--accent);
-            text-decoration: underline;
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-exp {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .badge-vis {
+            background: rgba(129, 140, 248, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .btn-launch {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #000;
+            text-decoration: none;
+            padding: 0.5rem 0.9rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        /* Dynamic Preview Drawer / Modal */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            padding: 2rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .preview-content {
+            background: var(--bg-dark);
+            width: 90%;
+            height: 85%;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .preview-header {
+            padding: 1rem;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-close {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
 <body>
+
+    <canvas id="bg-canvas"></canvas>
+
     <div class="container">
-        <h1>Physics Interactive Visualizations</h1>
-        <p class="subtitle">An open-source repository of virtual laboratory experiments and conceptual simulations.</p>
+        <header>
+            <h1>Physics Interactive Visualizations</h1>
+            <p>Virtual Laboratory & Conceptual Physics Simulations</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search experiments or topics..." onkeyup="filterItems()">
+            </div>
+            <div class="filter-tabs">
+                <button class="tab-btn active" onclick="setFilter('all', this)">All</button>
+                <button class="tab-btn" onclick="setFilter('experiment', this)">Experiments</button>
+                <button class="tab-btn" onclick="setFilter('visualization', this)">Visualizations</button>
+            </div>
+        </div>
 
         <!-- Chapter: Units and Measurements -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Units and Measurements">
             <h2 class="chapter-title">Units and Measurements</h2>
-            <div class="section-title">Experiments</div>
-            <ul>
-                <li>🧪 <a href="./Units-and-Measurements/screw_gauge.html">Screw Gauge Measurement Tool</a></li>
-            </ul>
+            <div class="subsection-title">Experiments</div>
+            <div class="item-grid">
+                <div class="card" data-type="experiment">
+                    <div class="card-info">
+                        <h4>Screw Gauge Measurement Tool</h4>
+                        <span class="badge badge-exp">Experiment</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Units-and-Measurements/screw_gauge.html', 'Screw Gauge Tool')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Electrostatic Potential and Capacitance -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Electrostatic Potential and Capacitance">
             <h2 class="chapter-title">Electrostatic Potential and Capacitance</h2>
-            <div class="section-title">Visualizations</div>
-            <ul>
-                <li>📊 <a href="./Electrostatic-Potential-and-Capacitance/capacitor_charging.html">Capacitor Charging and Discharging Simulation</a></li>
-            </ul>
+            <div class="subsection-title">Visualizations</div>
+            <div class="item-grid">
+                <div class="card" data-type="visualization">
+                    <div class="card-info">
+                        <h4>Capacitor Charging & Discharging</h4>
+                        <span class="badge badge-vis">Visualization</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Electrostatic-Potential-and-Capacitance/capacitor_charging.html', 'Capacitor Simulation')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Current Electricity -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Current Electricity">
             <h2 class="chapter-title">Current Electricity</h2>
-            <div class="section-title">Experiments</div>
-            <ul>
-                <li>🧪 <a href="./Current-Electricity/metre_bridge.html">Metre Bridge (Series & Parallel Combinations)</a></li>
-            </ul>
+            <div class="subsection-title">Experiments</div>
+            <div class="item-grid">
+                <div class="card" data-type="experiment">
+                    <div class="card-info">
+                        <h4>Metre Bridge (Series & Parallel)</h4>
+                        <span class="badge badge-exp">Experiment</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Current-Electricity/metre_bridge.html', 'Metre Bridge')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Moving Charges and Magnetism -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Moving Charges and Magnetism">
             <h2 class="chapter-title">Moving Charges and Magnetism</h2>
-            <div class="section-title">Visualizations</div>
-            <ul>
-                <li>📊 <a href="./Moving-Charges-and-Magnetism/circular_loop_field.html">Magnetic Field on the Axis of a Circular Current Loop</a></li>
-            </ul>
+            <div class="subsection-title">Visualizations</div>
+            <div class="item-grid">
+                <div class="card" data-type="visualization">
+                    <div class="card-info">
+                        <h4>Magnetic Field on Axis of Loop</h4>
+                        <span class="badge badge-vis">Visualization</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Moving-Charges-and-Magnetism/circular_loop_field.html', 'Magnetic Field on Axis')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Magnetism and Matter -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Magnetism and Matter">
             <h2 class="chapter-title">Magnetism and Matter</h2>
-            <div class="section-title">Visualizations</div>
-            <ul>
-                <li>📊 <a href="./Magnetism-and-Matter/magnetic_dipole.html">Magnetic Dipole Field Lines Model</a></li>
-            </ul>
+            <div class="subsection-title">Visualizations</div>
+            <div class="item-grid">
+                <div class="card" data-type="visualization">
+                    <div class="card-info">
+                        <h4>Magnetic Dipole Field Lines</h4>
+                        <span class="badge badge-vis">Visualization</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Magnetism-and-Matter/magnetic_dipole.html', 'Magnetic Dipole')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Ray Optics and Optical Instruments -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Ray Optics and Optical Instruments">
             <h2 class="chapter-title">Ray Optics and Optical Instruments</h2>
-            <div class="section-title">Experiments</div>
-            <ul>
-                <li>🧪 <a href="./Ray-Optics/concave_mirror.html">Focal Length Determination (Concave Mirror)</a></li>
-                <li>🧪 <a href="./Ray-Optics/convex_lens.html">Focal Length Determination (Convex Lens)</a></li>
-            </ul>
+            <div class="subsection-title">Experiments</div>
+            <div class="item-grid">
+                <div class="card" data-type="experiment">
+                    <div class="card-info">
+                        <h4>Focal Length (Concave Mirror)</h4>
+                        <span class="badge badge-exp">Experiment</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Ray-Optics/concave_mirror.html', 'Concave Mirror')" class="btn-launch">Launch</a>
+                </div>
+                <div class="card" data-type="experiment">
+                    <div class="card-info">
+                        <h4>Focal Length (Convex Lens)</h4>
+                        <span class="badge badge-exp">Experiment</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Ray-Optics/convex_lens.html', 'Convex Lens')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
 
         <!-- Chapter: Semiconductor Electronics -->
-        <div class="chapter-card">
+        <div class="chapter-section" data-chapter="Semiconductor Electronics">
             <h2 class="chapter-title">Semiconductor Electronics</h2>
-            <div class="section-title">Experiments</div>
-            <ul>
-                <li>🧪 <a href="./Semiconductor-Electronics/pn_junction.html">P-N Junction Diode Characteristics</a></li>
-            </ul>
+            <div class="subsection-title">Experiments</div>
+            <div class="item-grid">
+                <div class="card" data-type="experiment">
+                    <div class="card-info">
+                        <h4>P-N Junction Diode Characteristics</h4>
+                        <span class="badge badge-exp">Experiment</span>
+                    </div>
+                    <a href="javascript:void(0)" onclick="openPreview('./Semiconductor-Electronics/pn_junction.html', 'P-N Diode')" class="btn-launch">Launch</a>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Live Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3 id="previewTitle">Preview</h3>
+                <button class="preview-close" onclick="closePreview()">&times;</button>
+            </div>
+            <iframe id="previewFrame" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Interactive Canvas Background (Atomic Nodes)
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        const nodes = Array.from({ length: 45 }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8
+        }));
+
+        function drawBackground() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#38bdf8';
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+
+            nodes.forEach((node, i) => {
+                node.x += node.vx;
+                node.y += node.vy;
+
+                if (node.x < 0 || node.x > width) node.vx *= -1;
+                if (node.y < 0 || node.y > height) node.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[j].x - node.x;
+                    const dy = nodes[j].y - node.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 140) {
+                        ctx.beginPath();
+                        ctx.moveTo(node.x, node.y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(drawBackground);
+        }
+        drawBackground();
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // Filter Logic
+        let activeFilter = 'all';
+
+        function setFilter(type, btn) {
+            activeFilter = type;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterItems();
+        }
+
+        function filterItems() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('h4').textContent.toLowerCase();
+                const type = card.getAttribute('data-type');
+                const matchesSearch = title.includes(query);
+                const matchesType = (activeFilter === 'all') || (type === activeFilter);
+
+                if (matchesSearch && matchesType) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Live Preview Controls
+        function openPreview(url, title) {
+            document.getElementById('previewTitle').textContent = title;
+            document.getElementById('previewFrame').src = url;
+            document.getElementById('previewModal').style.display = 'flex';
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+            document.getElementById('previewFrame').src = '';
+        }
+    </script>
 </body>
 </html>
