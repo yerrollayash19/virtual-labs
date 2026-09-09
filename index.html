@@ -1,785 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhysLab 3D - Interactive Physics Simulations</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #0a0c10;
-            --bg-card: rgba(22, 27, 34, 0.7);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --primary: #3b82f6;
-            --primary-glow: rgba(59, 130, 246, 0.4);
-            --accent-cyan: #06b6d4;
-            --accent-purple: #8b5cf6;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
-            --font-main: 'Outfit', sans-serif;
-            --font-heading: 'Space Grotesk', sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Labs - Class 12 Physics</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --border: rgba(186, 230, 253, 0.8);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --accent-tag: #e0f2fe;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 3rem; position: relative; overflow-x: hidden; }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: var(--font-main);
-            overflow-x: hidden;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 40%);
-            background-attachment: fixed;
-        }
+    /* Animated Physics Background Canvas */
+    #physics-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.45; }
 
-        /* Header & Nav */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem 5%;
-            backdrop-filter: blur(12px);
-            background: rgba(10, 12, 16, 0.6);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+    /* Navigation Bar */
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; position: relative; z-index: 10; }
+    .logo img { height: 44px; width: auto; border-radius: 8px; object-fit: contain; transition: transform 0.3s; }
+    .logo img:hover { transform: scale(1.03); }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--primary); }
 
-        .logo {
-            font-family: var(--font-heading);
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    /* Hero Section */
+    .hero { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 800px; margin: 0 auto; position: relative; z-index: 10; }
+    .hero h1 { font-size: 2.6rem; font-weight: 800; color: var(--text-main); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
+    .hero h1 span { color: var(--primary); display: block; }
+    .hero p { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 1.5rem; }
 
-        .logo span {
-            color: var(--primary);
-        }
+    /* Search & Controls */
+    .controls { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem; position: relative; z-index: 10; }
+    .search-bar { padding: 0.8rem 1.25rem; width: 100%; max-width: 480px; border-radius: 50px; border: 1px solid var(--border); background: #ffffff; color: var(--text-main); font-size: 0.95rem; outline: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
+    .search-bar:focus { border-color: var(--primary); box-shadow: 0 4px 16px rgba(2, 132, 199, 0.2); }
 
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
+    /* Filter Tabs */
+    .tabs-container { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+    .tab-btn { background: #ffffff; border: 1px solid var(--border); color: var(--text-muted); padding: 0.5rem 1.25rem; border-radius: 50px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: all 0.25s ease; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); }
+    .tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+    .tab-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
 
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-            cursor: pointer;
-        }
+    /* Cards Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 20px 30px -10px rgba(2, 132, 199, 0.18); border-color: var(--primary); }
+    
+    .tag { display: inline-block; background: var(--accent-tag); color: var(--primary); padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.75rem; width: fit-content; text-transform: uppercase; }
+    .card h3 { font-size: 1.15rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.4; }
+    .card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.5rem; flex-grow: 1; }
 
-        .nav-links a:hover, .nav-links a.active {
-            color: var(--primary);
-        }
+    .btn-group { display: flex; gap: 0.75rem; }
+    .btn { flex: 1; padding: 0.7rem; border-radius: 8px; text-decoration: none; text-align: center; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
 
-        /* Container Layout */
-        main {
-            flex: 1;
-            max-width: 1400px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 2rem 5%;
-        }
+    /* About Section & Team Credits */
+    .about-section { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
+    .about-card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    .about-card h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 0.75rem; }
+    .about-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
 
-        /* Hero Section */
-        .hero {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 4rem 0 3rem;
-            max-width: 800px;
-            margin: 0 auto;
-        }
+    .team-credits { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    .credit-group h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.5rem; }
+    .credit-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .credit-list li { background: #ffffff; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.88rem; font-weight: 600; color: var(--text-main); }
 
-        .badge {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: var(--accent-cyan);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .hero h1 {
-            font-family: var(--font-heading);
-            font-size: 3.5rem;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero p {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            margin-bottom: 2.5rem;
-            line-height: 1.6;
-        }
-
-        .cta-group {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .btn {
-            padding: 0.8rem 1.8rem;
-            border-radius: 8px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
-            color: white;
-            box-shadow: 0 4px 20px var(--primary-glow);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
-
-        /* Section Layouts */
-        .section-header {
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .section-header h2 {
-            font-family: var(--font-heading);
-            font-size: 2.2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .section-header p {
-            color: var(--text-muted);
-        }
-
-        /* Category Tabs */
-        .category-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 0.8rem;
-            margin-bottom: 3rem;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            padding: 0.6rem 1.2rem;
-            border-radius: 30px;
-            cursor: pointer;
-            font-family: var(--font-main);
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .tab-btn:hover, .tab-btn.active {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: var(--primary);
-            color: #fff;
-        }
-
-        /* Grid & Cards */
-        .experiments-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 2rem;
-        }
-
-        .exp-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
-            position: relative;
-        }
-
-        .exp-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(59, 130, 246, 0.4);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.2);
-        }
-
-        .card-image-wrapper {
-            width: 100%;
-            height: 180px;
-            position: relative;
-            overflow: hidden;
-            background: #111827;
-        }
-
-        .card-image-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .exp-card:hover .card-image-wrapper img {
-            transform: scale(1.05);
-        }
-
-        .card-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(10, 12, 16, 0.75);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 0.25rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .card-content {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-
-        .card-header {
-            margin-bottom: 0.8rem;
-        }
-
-        .card-category {
-            font-size: 0.8rem;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 0.3rem;
-        }
-
-        .card-title {
-            font-family: var(--font-heading);
-            font-size: 1.25rem;
-            color: #fff;
-        }
-
-        .card-description {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            flex-grow: 1;
-        }
-
-        .card-footer {
-            display: flex;
-            gap: 0.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .card-footer .btn {
-            flex: 1;
-            padding: 0.6rem 0;
-            font-size: 0.85rem;
-            justify-content: center;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: #161b22;
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            margin: auto;
-            padding: 2rem;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            position: relative;
-            animation: modalFadeIn 0.3s ease;
-        }
-
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .close-btn {
-            color: var(--text-muted);
-            position: absolute;
-            top: 1.2rem;
-            right: 1.5rem;
-            font-size: 1.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .close-btn:hover {
-            color: #fff;
-        }
-
-        .modal-title {
-            font-family: var(--font-heading);
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--accent-cyan);
-        }
-
-        .modal-body {
-            color: var(--text-main);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        .modal-body h4 {
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-            color: #fff;
-        }
-
-        .modal-body ul {
-            margin-left: 1.2rem;
-            margin-bottom: 1rem;
-        }
-
-        /* About Section */
-        .about-section {
-            display: none;
-            max-width: 800px;
-            margin: 0 auto;
-            background: var(--bg-card);
-            padding: 3rem;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-        }
-
-        .about-section h2 {
-            font-family: var(--font-heading);
-            margin-bottom: 1.5rem;
-            color: #fff;
-        }
-
-        .about-section p {
-            color: var(--text-muted);
-            line-height: 1.7;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Features Overview */
-        .features-overview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 4rem;
-        }
-
-        .feature-item {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            border-radius: 12px;
-        }
-
-        .feature-item h3 {
-            font-family: var(--font-heading);
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            color: #fff;
-        }
-
-        .feature-item p {
-            color: var(--text-muted);
-            font-size: 0.88rem;
-            line-height: 1.5;
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border-color);
-            margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .nav-links { gap: 1rem; }
-        }
-    </style>
+    footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2.5rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 1px solid var(--border); position: relative; z-index: 10; }
+  </style>
 </head>
 <body>
 
-    <header>
-        <a href="#" class="logo" onclick="showSection('home'); return false;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-            PhysLab <span>3D</span>
-        </a>
-        <ul class="nav-links">
-            <li><a href="#home" onclick="showSection('home'); return false;" id="nav-home" class="active">Home</a></li>
-            <li><a href="#experiments" onclick="showSection('experiments'); return false;" id="nav-experiments">Experiments</a></li>
-            <li><a href="#visualisations" onclick="showSection('visualisations'); return false;" id="nav-visualisations">Visualisations</a></li>
-            <li><a href="#about" onclick="showSection('about'); return false;" id="nav-about">About</a></li>
-        </ul>
-    </header>
+  <!-- Background Physics Particles -->
+  <canvas id="physics-bg"></canvas>
 
-    <main>
-        <!-- HERO SECTION -->
-        <div class="hero">
-            <span class="badge">Next-Gen Physics Learning</span>
-            <h1>Interactive Physics Experiments in 3D</h1>
-            <p>Explore complex physics concepts through real-time Three.js simulations, precise parameter controls, and dynamic visual representations.</p>
-            <div class="cta-group">
-                <button class="btn btn-primary" onclick="showSection('experiments')">Explore Experiments</button>
-                <button class="btn btn-secondary" onclick="showSection('visualisations')">View Visualisations</button>
-            </div>
-        </div>
+  <nav>
+    <a href="#" class="logo">
+      <img src="logo.png" alt="Virtual Labs Logo" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yerrollayash19/virtual-labs/main/logo.png';">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">Home</a></li>
+      <li><a href="#labGrid">Experiments</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+  </nav>
 
-        <div class="features-overview">
-            <div class="feature-item">
-                <h3>Real-time 3D Engine</h3>
-                <p>Powered by Three.js for realistic render loops, lighting, and spatial calculations directly in your browser.</p>
-            </div>
-            <div class="feature-item">
-                <h3>Interactive Controls</h3>
-                <p>Adjust variables like potential, charge, magnetic flux, and focal lengths in real time to see physical outputs.</p>
-            </div>
-            <div class="feature-item">
-                <h3>Theory & Insights</h3>
-                <p>Every setup includes mathematical derivations, live data graphs, and conceptual summaries for deep learning.</p>
-            </div>
-        </div>
+  <section class="hero">
+    <h1>VIRTUAL LABS: <span>CLASS 12 EXPERIMENTS</span></h1>
+    <p>Explore, Simulate, and Learn: Interactive Physics Science Previews & Experiments</p>
+  </section>
 
-        <!-- EXPERIMENTS SECTION -->
-        <div class="experiments-section" id="experiments" style="display: none;">
-            <div class="section-header">
-                <h2>Interactive Experiments</h2>
-                <p>Select a laboratory simulation to launch interactive controls and theoretical models.</p>
-            </div>
+  <div class="controls">
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search experiments..." onkeyup="filterLabs()">
+    <div class="tabs-container">
+      <button class="tab-btn active" onclick="switchTab('all', this)">All</button>
+      <button class="tab-btn" onclick="switchTab('current-electricity', this)">Current Electricity</button>
+      <button class="tab-btn" onclick="switchTab('optics', this)">Ray Optics</button>
+      <button class="tab-btn" onclick="switchTab('electronics', this)">Semiconductor Electronics</button>
+      <button class="tab-btn" onclick="switchTab('tools', this)">Additional Tools</button>
+    </div>
+  </div>
 
-            <div class="category-tabs">
-                <button class="tab-btn active" onclick="filterCategory('all')">All</button>
-                <button class="tab-btn" onclick="filterCategory('current-electricity')">Current Electricity</button>
-                <button class="tab-btn" onclick="filterCategory('ray-optics')">Ray Optics</button>
-                <button class="tab-btn" onclick="filterCategory('electrostatics')">Electrostatics</button>
-                <button class="tab-btn" onclick="filterCategory('magnetism')">Magnetism</button>
-            </div>
+  <main class="grid" id="labGrid">
 
-            <div class="experiments-grid" id="expGrid">
-                <!-- Experiment 1: Charging Capacitor -->
-                <div class="exp-card" data-category="current-electricity">
-                    <div class="card-image-wrapper">
-                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Charging Capacitor">
-                        <span class="card-badge">Interactive 3D</span>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <span class="card-category">Current Electricity</span>
-                            <h3 class="card-title">Charging of a Capacitor</h3>
-                        </div>
-                        <p class="card-description">Examine RC circuit dynamics, transient charge accumulation, and exponential voltage curves in real time.</p>
-                        <div class="card-footer">
-                            <button class="btn btn-secondary" onclick="openTheoryModal('capacitor')">Theory & Models</button>
-                            <a href="preview.html?id=capacitor-charging" class="btn btn-primary">Launch</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Experiment 2: Circular Loop Axis Field -->
-                <div class="exp-card" data-category="magnetism">
-                    <div class="card-image-wrapper">
-                        <img src="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop" alt="Circular Loop Magnetic Field">
-                        <span class="card-badge">Interactive 3D</span>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <span class="card-category">Magnetism</span>
-                            <h3 class="card-title">Circular Loop Axial Field</h3>
-                        </div>
-                        <p class="card-description">Plot Biot-Savart vector distributions along the central axis of a current loop with 3D field line vectors.</p>
-                        <div class="card-footer">
-                            <button class="btn btn-secondary" onclick="openTheoryModal('circular-loop')">Theory & Models</button>
-                            <a href="preview.html?id=circular-loop-field" class="btn btn-primary">Launch</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- VISUALISATIONS SECTION -->
-        <div class="experiments-section" id="visualisations" style="display: none;">
-            <div class="section-header">
-                <h2>3D Visualisations</h2>
-                <p>Interactive standalone 3D simulations focusing on physical representations and field geometry.</p>
-            </div>
-
-            <div class="category-tabs">
-                <button class="tab-btn active" onclick="filterVisCategory('all')">All</button>
-                <button class="tab-btn" onclick="filterVisCategory('electrostatics')">Electrostatics</button>
-                <button class="tab-btn" onclick="filterVisCategory('current-electricity')">Current Electricity</button>
-                <button class="tab-btn" onclick="filterVisCategory('magnetism')">Magnetism</button>
-            </div>
-
-            <div class="experiments-grid" id="visGrid">
-                <!-- Capacitor Visualisation Card -->
-                <div class="exp-card" data-vis-category="current-electricity">
-                    <div class="card-image-wrapper">
-                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Capacitor Charging 3D">
-                        <span class="card-badge">3D Standalone</span>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <span class="card-category">Current Electricity</span>
-                            <h3 class="card-title">Capacitor Charging 3D</h3>
-                        </div>
-                        <p class="card-description">Interactive 3D visualization showing charge accumulation and potential growth across a capacitor during charging.</p>
-                        <div class="card-footer">
-                            <button class="btn btn-secondary" onclick="openTheoryModal('capacitor')">Theory & Models</button>
-                            <a href="capacitor_charging_3d_3.html" class="btn btn-primary">Launch Visualisation</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Circular Loop Visualisation Card -->
-                <div class="exp-card" data-vis-category="magnetism">
-                    <div class="card-image-wrapper">
-                        <img src="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop" alt="Circular Loop Field">
-                        <span class="card-badge">3D Standalone</span>
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <span class="card-category">Magnetism</span>
-                            <h3 class="card-title">Circular Loop Axial Field</h3>
-                        </div>
-                        <p class="card-description">3D field line representation and magnetic field vector plotting along the axis of a current-carrying circular loop.</p>
-                        <div class="card-footer">
-                            <button class="btn btn-secondary" onclick="openTheoryModal('circular-loop')">Theory & Models</button>
-                            <a href="circular_loop_axis_field_3.html" class="btn btn-primary">Launch Visualisation</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ABOUT SECTION -->
-        <div class="about-section" id="about">
-            <h2>About PhysLab 3D</h2>
-            <p>PhysLab 3D is an interactive web platform designed to help students, educators, and physics enthusiasts visualize complex physical phenomena in 3D real-time rendering environments.</p>
-            <p>Built using modern web technologies including WebGL, Three.js, and HTML5 Canvas, our simulations enable intuitive experimentation with physical parameters, real-time mathematical graphing, and comprehensive structural theory.</p>
-        </div>
-    </main>
-
-    <!-- THEORY MODAL -->
-    <div id="theoryModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeTheoryModal()">&times;</span>
-            <h3 class="modal-title" id="modalTitle">Experiment Theory & Models</h3>
-            <div class="modal-body" id="modalBody">
-                <!-- Dynamic Content Loaded Here -->
-            </div>
-        </div>
+    <div class="card" data-category="current-electricity" data-title="Resistivity of Wires Potential Difference Current Ohm Law Graph">
+      <div>
+        <span class="tag">Current Electricity</span>
+        <h3>1. Wire Resistivity (V vs I Graph)</h3>
+        <p>Determine resistivity of wires by plotting potential difference versus current graphs.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=wire-resistivity" class="btn btn-primary">View Preview & Start</a>
+      </div>
     </div>
 
-    <footer>
-        <p>&copy; 2026 PhysLab 3D - Interactive Physics Platform. All rights reserved.</p>
-    </footer>
+    <div class="card" data-category="current-electricity" data-title="Resistance Metre Bridge Standard Resistor Wire">
+      <div>
+        <span class="tag">Current Electricity</span>
+        <h3>2. Resistance using Metre Bridge</h3>
+        <p>Find unknown resistance using a metre bridge apparatus with Wheatstone bridge balance principles.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=meter-bridge" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
 
-    <script>
-        // Section Switching Engine
-        function showSection(sectionId) {
-            const experimentsSection = document.getElementById('experiments');
-            const visualisationsSection = document.getElementById('visualisations');
-            const aboutSection = document.getElementById('about');
-            const heroSection = document.querySelector('.hero');
-            const featuresSection = document.querySelector('.features-overview');
+    <div class="card" data-category="current-electricity" data-title="Series Parallel Combination Resistance Metre Bridge">
+      <div>
+        <span class="tag">Current Electricity</span>
+        <h3>3. Series & Parallel Combination</h3>
+        <p>Verify equivalent resistance laws for series and parallel resistor networks using metre bridge.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=metre-bridge-combination" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
 
-            // Hide all sections
-            experimentsSection.style.display = 'none';
-            visualisationsSection.style.display = 'none';
-            aboutSection.style.display = 'none';
-            heroSection.style.display = 'none';
-            featuresSection.style.display = 'none';
+    <div class="card" data-category="optics" data-title="Concave Mirror Focal Length u v Values">
+      <div>
+        <span class="tag">Ray Optics</span>
+        <h3>4. Concave Mirror Focal Length</h3>
+        <p>Simulate image formation and calculate focal length by observing u and v relations.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=concave-mirror" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
 
-            // Remove active states from nav
-            document.getElementById('nav-home')?.classList.remove('active');
-            document.getElementById('nav-experiments')?.classList.remove('active');
-            document.getElementById('nav-visualisations')?.classList.remove('active');
-            document.getElementById('nav-about')?.classList.remove('active');
+    <div class="card" data-category="optics" data-title="Convex Lens Focal Length u v Graphs 1/u 1/v">
+      <div>
+        <span class="tag">Ray Optics</span>
+        <h3>5. Convex Lens Focal Length</h3>
+        <p>Determine lens focal length using interactive u-v plots and inverse linear graph fits.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=convex-lens" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
 
-            // Active section display logic
-            if (sectionId === 'experiments') {
-                experimentsSection.style.display = 'block';
-                document.getElementById('nav-experiments')?.classList.add('active');
-            } else if (sectionId === 'visualisations') {
-                visualisationsSection.style.display = 'block';
-                document.getElementById('nav-visualisations')?.classList.add('active');
-            } else if (sectionId === 'about') {
-                aboutSection.style.display = 'block';
-                document.getElementById('nav-about')?.classList.add('active');
-            } else { // 'home'
-                heroSection.style.display = 'flex';
-                featuresSection.style.display = 'grid';
-                document.getElementById('nav-home')?.classList.add('active');
-            }
+    <div class="card" data-category="electronics" data-title="PN Junction Diode IV Characteristic Forward Reverse Bias">
+      <div>
+        <span class="tag">Electronics</span>
+        <h3>6. P-N Junction Diode</h3>
+        <p>Draw I-V characteristics for semiconductor diodes in forward and reverse bias setups.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=pn-diode" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    <div class="card" data-category="tools" data-title="Screw Gauge Micrometer Measurement Pitch Least Count">
+      <div>
+        <span class="tag">Additional Tools</span>
+        <h3>7. Screw Gauge Tool</h3>
+        <p>3D interactive micrometer simulator for wire thickness and zero-error practice.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=screw-gauge" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
+
+  </main>
+
+  <section class="about-section" id="about">
+    <div class="about-card">
+      <h2>About Virtual Labs</h2>
+      <p>Virtual Labs is an interactive learning platform designed for Class 12 Physics students. It bridges the gap between theoretical knowledge and practical application through interactive web simulations.</p>
+      
+      <div class="team-credits">
+        <div class="credit-group">
+          <h4>Made by</h4>
+          <ul class="credit-list">
+            <li>Yash Yerrolla</li>
+            <li>Soham Takalkar</li>
+            <li>Riyansh Upadhyay</li>
+            <li>Shawn Paul</li>
+          </ul>
+        </div>
+        <div class="credit-group">
+          <h4>Under the Guidance of</h4>
+          <ul class="credit-list">
+            <li>Mr. Manohar</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; Virtual Labs. Built for interactive science education.</p>
+  </footer>
+
+  <script>
+    // Particle animation logic
+    const canvas = document.getElementById('physics-bg');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for (let i = 0; i < 35; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8
+      });
+    }
+
+    function animatePhysics() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0284c7';
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.15)';
+
+      particles.forEach((p, index) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (let j = index + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 130) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
         }
+      });
+      requestAnimationFrame(animatePhysics);
+    }
+    animatePhysics();
 
-        // Experiment Category Filter
-        function filterCategory(category) {
-            const buttons = document.querySelectorAll('#experiments .tab-btn');
-            const cards = document.querySelectorAll('#expGrid .exp-card');
+    let activeCategory = 'all';
+    function switchTab(category, btnElement) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+      activeCategory = category;
+      filterLabs();
+    }
 
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-
-            cards.forEach(card => {
-                if (category === 'all' || card.dataset.category === category) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        // Visualisations Category Filter
-        function filterVisCategory(category) {
-            const buttons = document.querySelectorAll('#visualisations .tab-btn');
-            const cards = document.querySelectorAll('#visGrid .exp-card');
-
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-
-            cards.forEach(card => {
-                if (category === 'all' || card.dataset.visCategory === category) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        // Theory & Models Data
-        const theoryData = {
-            'capacitor': {
-                title: 'Capacitor Charging Dynamics',
-                content: `
-                    <h4>Theoretical Overview</h4>
-                    <p>When a DC voltage source is connected to a series resistor and capacitor, charge accumulates exponentially on the capacitor plates.</p>
-                    <h4>Governing Formulas</h4>
-                    <ul>
-                        <li><strong>Charge Growth:</strong> q(t) = Q₀ (1 - e^(-t / RC))</li>
-                        <li><strong>Voltage Across Capacitor:</strong> V_c(t) = V₀ (1 - e^(-t / RC))</li>
-                        <li><strong>Circuit Current:</strong> I(t) = (V₀ / R) e^(-t / RC)</li>
-                        <li><strong>Time Constant (τ):</strong> τ = R × C</li>
-                    </ul>
-                    <h4>Key Characteristics</h4>
-                    <p>At t = τ, the capacitor reaches approximately 63.2% of its maximum voltage V₀. Full charge is theoretically reached after 5τ.</p>
-                `
-            },
-            'circular-loop': {
-                title: 'Circular Loop Axial Magnetic Field',
-                content: `
-                    <h4>Theoretical Overview</h4>
-                    <p>The magnetic field produced along the symmetry axis (x-axis) of a current-carrying circular loop of radius R carrying current I is derived using the Biot-Savart Law.</p>
-                    <h4>Governing Formula</h4>
-                    <ul>
-                        <li><strong>Axial Field Strength:</strong> B(x) = (μ₀ I R²) / [ 2 (R² + x²)^(3/2) ]</li>
-                        <li><strong>Center Field (x = 0):</strong> B_center = (μ₀ I) / (2 R)</li>
-                    </ul>
-                    <h4>Key Characteristics</h4>
-                    <p>The magnetic field direction follows the right-hand rule and attains its peak value directly at the center of the loop.</p>
-                `
-            }
-        };
-
-        // Modal Functionality
-        function openTheoryModal(modelKey) {
-            const modal = document.getElementById('theoryModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-
-            if (theoryData[modelKey]) {
-                modalTitle.innerText = theoryData[modelKey].title;
-                modalBody.innerHTML = theoryData[modelKey].content;
-                modal.style.display = 'flex';
-            }
-        }
-
-        function closeTheoryModal() {
-            document.getElementById('theoryModal').style.display = 'none';
-        }
-
-        // Close modal when clicking backdrop
-        window.onclick = function(event) {
-            const modal = document.getElementById('theoryModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
-    </script>
+    function filterLabs() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.card').forEach(card => {
+        const title = card.getAttribute('data-title').toLowerCase();
+        const category = card.getAttribute('data-category');
+        const matchesSearch = title.includes(query);
+        const matchesCategory = (activeCategory === 'all' || category === activeCategory);
+        card.style.display = (matchesSearch && matchesCategory) ? "flex" : "none";
+      });
+    }
+  </script>
 </body>
 </html>
