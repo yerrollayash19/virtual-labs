@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Full-Wave Rectifier — 3D Circuit Diagram</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --border:#233042; --text:#cdd9e5; --muted:#7d8b9a; --cyan:#4fd1c5;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%; background:var(--bg); overflow:hidden; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}
+  #scene{position:fixed; inset:0;}
+  header{
+    position:fixed; top:0; left:0; right:0; padding:12px 18px; z-index:5;
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    background:linear-gradient(180deg, rgba(11,15,20,0.92), rgba(11,15,20,0));
+    pointer-events:none;
+  }
+  header h1{font-size:16px; margin:0; font-weight:600; color:var(--text); letter-spacing:.3px;}
+  header .sub{color:var(--muted); font-size:12px;}
+  .hud{
+    position:fixed; bottom:16px; left:16px; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  button{
+    background:rgba(18,24,33,0.9); color:var(--text); border:1px solid var(--border); border-radius:7px;
+    padding:8px 14px; font-size:12.5px; cursor:pointer; backdrop-filter:blur(4px);
+  }
+  button:hover{border-color:var(--cyan);}
+  button.active{background:rgba(79,209,197,0.16); border-color:var(--cyan); color:var(--cyan);}
+  .tabbtn{font-weight:600;}
+  .hint{
+    position:fixed; bottom:16px; right:16px; z-index:5; color:var(--muted); font-size:11.5px;
+    background:rgba(18,24,33,0.85); border:1px solid var(--border); border-radius:7px; padding:8px 12px;
+  }
+  #tooltip{
+    position:fixed; z-index:6; pointer-events:none; background:rgba(18,24,33,0.95); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:5px 9px; font-size:11.5px; display:none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Full-Wave Rectifier</h1>
+  <span class="sub">Centre-tap transformer, two-diode configuration — 3D circuit diagram</span>
+</header>
+
+<div id="tabbar" style="position:fixed; top:46px; left:16px; z-index:5; display:flex; gap:8px;">
+  <button id="tabBtn1" class="active tabbtn">Positive Half Cycle — D1</button>
+  <button id="tabBtn2" class="tabbtn">Negative Half Cycle — D2</button>
+  <button id="tabBtn3" class="tabbtn">Full Cycle — D1 ⇄ D2</button>
+</div>
+
+<div id="scene"></div>
+<div id="tooltip"></div>
+
+<div id="readout" style="position:fixed; top:96px; right:16px; z-index:5; background:rgba(18,24,33,0.9); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-family:'SFMono-Regular',Consolas,monospace; font-size:12px; color:var(--text); min-width:170px;">
+  <div style="color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Live values</div>
+  <div>V<sub>p</sub> (primary): <span id="vpVal">0.0 V</span></div>
+  <div>V<sub>a</sub> (to CT): <span id="vaVal">0.0 V</span></div>
+  <div>V<sub>b</sub> (to CT): <span id="vbVal">0.0 V</span></div>
+  <div>D1: <span id="d1St">—</span></div>
+  <div>D2: <span id="d2St">—</span></div>
+</div>
+
+<div id="wavePanel" style="display:none; position:fixed; top:230px; right:16px; z-index:5; width:300px; background:rgba(18,22,29,0.94); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-family:'SFMono-Regular',Consolas,monospace;">
+  <div style="color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Fig. 14.19 — live</div>
+  <div style="color:var(--muted); font-size:10.5px; margin-bottom:2px;">Waveform at A</div>
+  <svg id="chartA" viewBox="0 0 280 56" style="width:100%; height:56px; display:block;"><line x1="0" y1="28" x2="280" y2="28" stroke="#242b36" stroke-width="1"/><path id="pathA" fill="none" stroke="#5fe0ff" stroke-width="1.7"/></svg>
+  <div style="color:var(--muted); font-size:10.5px; margin:8px 0 2px;">Waveform at B</div>
+  <svg id="chartB" viewBox="0 0 280 56" style="width:100%; height:56px; display:block;"><line x1="0" y1="28" x2="280" y2="28" stroke="#242b36" stroke-width="1"/><path id="pathB" fill="none" stroke="#5fe0ff" stroke-width="1.7"/></svg>
+  <div style="color:var(--muted); font-size:10.5px; margin:8px 0 2px;">Output across R<sub>L</sub></div>
+  <svg id="chartOut" viewBox="0 0 280 68" style="width:100%; height:68px; display:block;">
+    <line x1="0" y1="52" x2="280" y2="52" stroke="#242b36" stroke-width="1"/>
+    <path id="pathOut" fill="none" stroke="#3fe089" stroke-width="1.9"/>
+    <g id="outLabels"></g>
+  </svg>
+</div>
+
+<div class="hud">
+  <button id="playBtn">⏸ Pause current</button>
+  <button id="resetBtn">⟳ Reset view</button>
+  <button id="labelsBtn" class="active">🏷 Labels: on</button>
+</div>
+<div class="hint">drag to rotate · scroll to zoom</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const container = document.getElementById('scene');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0d12);
+  scene.fog = new THREE.Fog(0x0a0d12, 18, 40);
+
+  const camera = new THREE.PerspectiveCamera(38, window.innerWidth/window.innerHeight, 0.1, 200);
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  container.appendChild(renderer.domElement);
+
+  // ---- lighting (cool ambient + white key + blue rim, like the p-n junction piece) ----
+  scene.add(new THREE.AmbientLight(0x99a5b5, 0.55));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(7,11,9);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xdce8ff, 0.3);
+  fill.position.set(-9,5,-7);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(0x4fa8ff, 0.35);
+  rim.position.set(0,6,-10);
+  scene.add(rim);
+
+  // ---- materials ----
+  const M = {
+    wire: new THREE.MeshStandardMaterial({color:0xd7dee6, roughness:0.4, metalness:0.35, emissive:0x1a2530, emissiveIntensity:0.3}),
+    ink: new THREE.MeshStandardMaterial({color:0xd7dee6, roughness:0.4, metalness:0.35, emissive:0x1a2530, emissiveIntensity:0.3}),
+    coil: new THREE.MeshStandardMaterial({color:0xe08a34, roughness:0.32, metalness:0.55, emissive:0x532200, emissiveIntensity:0.35}),
+    coilSecondary: new THREE.MeshStandardMaterial({color:0xffab4d, roughness:0.28, metalness:0.6, emissive:0x5c2a00, emissiveIntensity:0.4}),
+    core: new THREE.MeshStandardMaterial({color:0xaeb6c2, roughness:0.4, metalness:0.55, emissive:0x1a1f26, emissiveIntensity:0.25}),
+    dashed: new THREE.LineDashedMaterial({color:0x5fe0ff, dashSize:0.14, gapSize:0.09, linewidth:1}),
+    diodeFwd: new THREE.MeshStandardMaterial({color:0x3fe089, roughness:0.35, emissive:0x0f4a2c, emissiveIntensity:0.55}),
+    diodeRev: new THREE.MeshStandardMaterial({color:0xff5da8, roughness:0.35, emissive:0x4a1030, emissiveIntensity:0.45}),
+    diodeBody: new THREE.MeshStandardMaterial({color:0xc7d0da, roughness:0.4, metalness:0.3}),
+    resistor: new THREE.MeshStandardMaterial({color:0xd7dee6, roughness:0.45}),
+    resistorEdge: new THREE.MeshStandardMaterial({color:0xd7dee6, roughness:0.5}),
+    dot: new THREE.MeshStandardMaterial({color:0x5fe0ff, roughness:0.25, metalness:0.2, emissive:0x0f4a5c, emissiveIntensity:0.6}),
+    ground: new THREE.MeshStandardMaterial({color:0xc7d0da, roughness:0.5, metalness:0.2}),
+  };
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  // ---- helpers ----
+  function cylBetween(p1, p2, radius, material){
+    const a = new THREE.Vector3(...p1), b = new THREE.Vector3(...p2);
+    const dir = new THREE.Vector3().subVectors(b,a);
+    const len = dir.length();
+    const geo = new THREE.CylinderGeometry(radius, radius, len, 10);
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.position.copy(a).addScaledVector(dir, 0.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+    return mesh;
+  }
+  function wirePath(points, radius=0.045, material=M.wire){
+    const g = new THREE.Group();
+    for(let i=0;i<points.length-1;i++) g.add(cylBetween(points[i], points[i+1], radius, material));
+    for(const p of points){
+      const j = new THREE.Mesh(new THREE.SphereGeometry(radius,10,10), material);
+      j.position.set(...p); g.add(j);
+    }
+    return g;
+  }
+  function dashedRect(x1,y1,x2,y2,z){
+    const pts = [
+      new THREE.Vector3(x1,y1,z), new THREE.Vector3(x2,y1,z),
+      new THREE.Vector3(x2,y2,z), new THREE.Vector3(x1,y2,z),
+      new THREE.Vector3(x1,y1,z)
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, M.dashed);
+    line.computeLineDistances();
+    return line;
+  }
+  function helixCoil(x, yMin, yMax, turns, radius, tubeRadius, material){
+    const segsPerTurn = 14;
+    const N = Math.max(turns*segsPerTurn, 8);
+    const pts = [];
+    for(let i=0;i<=N;i++){
+      const t = i/N;
+      const angle = t*turns*2*Math.PI;
+      const y = yMin + (yMax-yMin)*t;
+      const px = x + radius*Math.cos(angle);
+      const pz = radius*Math.sin(angle);
+      pts.push(new THREE.Vector3(px,y,pz));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const geo = new THREE.TubeGeometry(curve, N, tubeRadius, 8, false);
+    const mesh = new THREE.Mesh(geo, material);
+    const midAngle = 0.5*turns*2*Math.PI;
+    return {
+      mesh,
+      bottomLead: [x+radius, yMin, 0],
+      topLead: [x+radius, yMax, 0],
+      midLead: [x+radius*Math.cos(midAngle), (yMin+yMax)/2, radius*Math.sin(midAngle)]
+    };
+  }
+  function groundSymbol(x, yTop, material=M.ground){
+    const g = new THREE.Group();
+    g.add(cylBetween([x,yTop,0],[x,yTop-0.26,0], 0.026, material));
+    const bars = [[0.24,0], [0.16,-0.11], [0.08,-0.22]];
+    for(const [halfW,dy] of bars){
+      g.add(cylBetween([x-halfW,yTop-0.26+dy,0],[x+halfW,yTop-0.26+dy,0], 0.024, material));
+    }
+    return g;
+  }
+  function diode(center, dirSign, labelText){
+    // diode symbol: a SOLID flat triangle (extruded, like the textbook arrow), then a bar (cathode)
+    const g = new THREE.Group();
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.22,-0.24);
+    shape.lineTo(-0.22, 0.24);
+    shape.lineTo(0.24, 0);
+    shape.closePath();
+    const triGeo = new THREE.ExtrudeGeometry(shape, {depth:0.4, bevelEnabled:false});
+    triGeo.translate(0,0,-0.2); // centre the extrusion depth on z=0
+    const cone = new THREE.Mesh(triGeo, M.diodeRev.clone());
+    cone.scale.x = dirSign;
+    cone.position.set(-0.16*dirSign, 0, 0);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.5,0.42), M.diodeBody.clone());
+    bar.position.set(0.14*dirSign, 0, 0);
+    g.add(cone); g.add(bar);
+    g.position.set(...center);
+    g.userData = {cone, bar};
+    return g;
+  }
+  function zigzagPoints(x, yTop, yBottom, zig=0.15, nZig=6, leadFrac=0.14){
+    const totalH = yTop - yBottom;
+    const leadLen = totalH*leadFrac;
+    const zigTop = yTop - leadLen, zigBottom = yBottom + leadLen;
+    const zigH = zigTop - zigBottom;
+    const pts = [[x,yTop,0],[x,zigTop,0]];
+    for(let i=1;i<nZig;i++){
+      const yy = zigTop - zigH*i/nZig;
+      const xx = x + (i%2===1 ? zig : -zig);
+      pts.push([xx,yy,0]);
+    }
+    pts.push([x,zigBottom,0]);
+    pts.push([x,yBottom,0]);
+    return pts;
+  }
+  function dot(p, r=0.09){
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r,16,16), M.dot);
+    m.position.set(...p);
+    return m;
+  }
+
+  // ---- labels (canvas sprites, always face camera) ----
+  const labelGroup = new THREE.Group();
+  scene.add(labelGroup);
+  function makeLabel(text, pos, opts={}){
+    const size = opts.size || 42;
+    const color = opts.color || '#e7edf3';
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${opts.bold?'700':'500'} ${size}px Segoe UI, sans-serif`;
+    const w = Math.ceil(ctx.measureText(text).width) + 24;
+    canvas.width = w; canvas.height = size+20;
+    ctx.font = `${opts.bold?'700':'500'} ${size}px Segoe UI, sans-serif`;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 12, canvas.height/2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+    const sprite = new THREE.Sprite(mat);
+    const scale = (opts.scale || 0.011);
+    sprite.scale.set(w*scale, canvas.height*scale, 1);
+    sprite.position.set(...pos);
+    sprite.renderOrder = 999;
+    labelGroup.add(sprite);
+    return sprite;
+  }
+  function textToCanvas(text, opts={}){
+    const size = opts.size || 42;
+    const color = opts.color || '#e7edf3';
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${opts.bold?'700':'500'} ${size}px Segoe UI, sans-serif`;
+    const w = Math.ceil(ctx.measureText(text).width) + 24;
+    canvas.width = w; canvas.height = size+20;
+    ctx.font = `${opts.bold?'700':'500'} ${size}px Segoe UI, sans-serif`;
+    ctx.fillStyle = color; ctx.textBaseline = 'middle';
+    ctx.fillText(text, 12, canvas.height/2);
+    return canvas;
+  }
+  function makeDynamicLabel(text, pos, opts={}){
+    const sprite = makeLabel(text, pos, opts);
+    const scale = opts.scale || 0.011;
+    return {
+      sprite,
+      setText(newText){
+        const canvas = textToCanvas(newText, opts);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.minFilter = THREE.LinearFilter;
+        sprite.material.map.dispose();
+        sprite.material.map = tex;
+        sprite.scale.set(canvas.width*scale, canvas.height*scale, 1);
+      }
+    };
+  }
+
+  // =========================================================
+  // LAYOUT (mirrors the reference textbook figure)
+  // =========================================================
+  const D1C = [-0.6, 1.3, 0];
+  const D2C = [-0.6,-1.3, 0];
+  const merge = [1.0, 1.3, 0];
+  const mergeLower = [1.0,-1.3, 0];
+  const X  = [2.6, 1.3, 0];
+  const Y  = [2.6,-1.3, 0];
+  const outDot = [3.7,-1.3, 0];
+
+  // transformer dashed enclosure
+  root.add(dashedRect(-6.3, -2.3, -1.75, 2.3, 0.9));
+
+  // core (two vertical laminations)
+  root.add(cylBetween([-4.05,-2.0,0],[-4.05,2.0,0], 0.05, M.core));
+  root.add(cylBetween([-3.75,-2.0,0],[-3.75,2.0,0], 0.05, M.core));
+
+  // primary winding: MORE turns (step-down transformer -> primary has more turns than secondary)
+  const primary = helixCoil(-5.6, -1.6, 1.6, 20, 0.42, 0.045, M.coil);
+  root.add(primary.mesh);
+
+  // secondary winding: FEWER turns, thicker wire (lower voltage, higher current side), centre-tapped
+  const secondary = helixCoil(-2.9, -1.3, 1.3, 8, 0.42, 0.075, M.coilSecondary);
+  root.add(secondary.mesh);
+
+  const A  = secondary.topLead;
+  const B  = secondary.bottomLead;
+  const CT = secondary.midLead;
+
+  // primary leads + AC supply source (circled sine-wave symbol, wired into the loop)
+  const srcY = 0, srcR = 0.46, srcX = -6.9;
+  root.add(wirePath([primary.topLead,[primary.topLead[0],2.6,0],[srcX,2.6,0],[srcX,srcY+srcR,0]], 0.035));
+  root.add(wirePath([[srcX,srcY-srcR,0],[srcX,-2.6,0],[primary.bottomLead[0],-2.6,0], primary.bottomLead], 0.035));
+
+  const srcDisc = new THREE.Mesh(new THREE.CircleGeometry(srcR, 40), new THREE.MeshStandardMaterial({color:0x12161d, roughness:0.6, side:THREE.DoubleSide}));
+  srcDisc.position.set(srcX, srcY, 0.01);
+  const srcRing = new THREE.Mesh(new THREE.RingGeometry(srcR-0.03, srcR, 40), M.ink);
+  srcRing.position.set(srcX, srcY, 0.02);
+  root.add(srcDisc, srcRing);
+
+  // static sine trace drawn on the source face
+  const sinePts = [];
+  for(let i=0;i<=40;i++){
+    const xx = -0.32 + 0.64*i/40;
+    sinePts.push(new THREE.Vector3(srcX+xx, srcY + 0.2*Math.sin(xx*2*Math.PI/0.32), 0.04));
+  }
+  const sineGeo = new THREE.BufferGeometry().setFromPoints(sinePts);
+  root.add(new THREE.Line(sineGeo, new THREE.LineBasicMaterial({color:0x5fe0ff})));
+  const sineDot = new THREE.Mesh(new THREE.SphereGeometry(0.06,14,14), new THREE.MeshStandardMaterial({color:0x5fe0ff, emissive:0x0f4a5c, emissiveIntensity:0.7}));
+  sineDot.position.set(srcX-0.32, srcY, 0.06);
+  root.add(sineDot);
+
+  // centre tap -> ground: offset slightly left before dropping, so the stem
+  // doesn't run straight through the B terminal/wire (this was the "clumsy" overlap)
+  const groundY = -1.85;
+  const groundX = CT[0] - 0.95;
+  const groundJ = [groundX, groundY, CT[2]];
+  root.add(wirePath([CT, [groundX, CT[1], CT[2]], [groundX, groundY, CT[2]]], 0.04));
+  root.add(groundSymbol(groundX, groundY));
+
+  // secondary taps a / b / centre-tap (small node dots)
+  root.add(dot(A,0.05)); root.add(dot(B,0.05)); root.add(dot(CT,0.05));
+
+  // D1 branch: A -> D1 -> merge -> X
+  root.add(wirePath([A,[A[0],1.3,0],[D1C[0]-0.3,1.3,0]], 0.045));
+  const d1 = diode(D1C, 1, 'D1');
+  root.add(d1);
+  root.add(wirePath([[D1C[0]+0.3,1.3,0], merge, X], 0.045));
+
+  // D2 branch: B -> D2 -> merge -> up -> X
+  root.add(wirePath([B,[B[0],-1.3,0],[D2C[0]-0.3,-1.3,0]], 0.045));
+  const d2 = diode(D2C, 1, 'D2');
+  root.add(d2);
+  root.add(wirePath([[D2C[0]+0.3,-1.3,0], mergeLower, [1.0,1.3,0]], 0.045));
+
+  // R_L between X and Y — NCERT-style zigzag resistor symbol
+  const rlZig = zigzagPoints(2.6, 1.3, -1.3, 0.15, 6, 0.1);
+  root.add(wirePath(rlZig, 0.032, M.ink));
+
+  // output stub + terminal (both X and Y bring out a short lead to a terminal dot, as in the figure)
+  const xOutDot = [3.7, 1.3, 0];
+  root.add(wirePath([X, xOutDot], 0.045));
+  root.add(dot(xOutDot,0.11));
+  root.add(wirePath([Y, outDot], 0.045));
+  root.add(dot(X,0.09));
+  root.add(dot(outDot,0.11));
+
+  // return rail: ground junction (below centre tap) runs along the bottom to Y, closing the loop
+  root.add(wirePath([groundJ, [Y[0], groundY, 0], Y], 0.035));
+
+
+  // ---- labels (kept to what the textbook figure itself shows) ----
+  const labels = [];
+  labels.push(makeLabel('Centre-Tap Transformer', [-6.3, 2.75, 0.9], {bold:true, size:34}));
+  labels.push(makeLabel('Centre Tap', [A[0]+0.35, CT[1]+0.28, 0], {size:28}));
+  labels.push(makeLabel('A', [A[0]+0.35, A[1]+0.22, 0], {bold:true, size:32}));
+  labels.push(makeLabel('B', [B[0]+0.35, B[1]-0.22, 0], {bold:true, size:32}));
+  labels.push(makeLabel('Diode 1 (D\u2081)', [-1.2, 1.75, 0], {size:30}));
+  labels.push(makeLabel('Diode 2 (D\u2082)', [-1.2,-1.75, 0], {size:30}));
+  labels.push(makeLabel('X', [2.6, 1.62, 0], {bold:true, size:32}));
+  labels.push(makeLabel('Y', [2.6,-1.62, 0], {bold:true, size:32}));
+  labels.push(makeLabel('R\u2097', [3.15, 0, 0], {size:32}));
+  labels.push(makeLabel('Output', [3.7,-1.62, 0], {size:30}));
+  labels.push(makeLabel('(a)', [-4.3, -3.0, 0], {size:28, color:'#7d8b9a'}));
+  labels.push(makeLabel('AC Input', [-6.9, 0.85, 0], {size:26}));
+
+  // dynamic polarity markers — flip each half cycle
+  const aPol  = makeDynamicLabel('(+)', [A[0]+0.35, A[1]-0.28, 0], {bold:true, size:28, color:'#3fe089'});
+  const bPol  = makeDynamicLabel('(\u2212)', [B[0]+0.35, B[1]+0.28, 0], {bold:true, size:28, color:'#ff5da8'});
+  const pTopPol = makeDynamicLabel('(+)', [primary.topLead[0]+0.3, primary.topLead[1]+0.1, 0], {bold:true, size:26, color:'#3fe089'});
+  const pBotPol = makeDynamicLabel('(\u2212)', [primary.bottomLead[0]+0.3, primary.bottomLead[1]-0.1, 0], {bold:true, size:26, color:'#ff5da8'});
+
+  // =========================================================
+  // custom orbit controls (no THREE.OrbitControls in r128)
+  // =========================================================
+  let radius = 13.5, theta = 0.55, phi = 1.15;
+  const target = new THREE.Vector3(-1.5, -0.1, 0);
+  function updateCamera(){
+    camera.position.set(
+      target.x + radius*Math.sin(phi)*Math.sin(theta),
+      target.y + radius*Math.cos(phi),
+      target.z + radius*Math.sin(phi)*Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+  let dragging=false, lastX=0, lastY=0;
+  renderer.domElement.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY;});
+  window.addEventListener('pointerup', ()=>dragging=false);
+  window.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dx=e.clientX-lastX, dy=e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    theta -= dx*0.006;
+    phi = Math.min(Math.max(phi - dy*0.006, 0.25), Math.PI-0.25);
+    updateCamera();
+  });
+  renderer.domElement.addEventListener('wheel', e=>{
+    e.preventDefault();
+    radius = Math.min(Math.max(radius + e.deltaY*0.01, 5), 30);
+    updateCamera();
+  }, {passive:false});
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    radius=13.5; theta=0.55; phi=1.15; updateCamera();
+  });
+  const labelsBtn = document.getElementById('labelsBtn');
+  labelsBtn.addEventListener('click', ()=>{
+    labelGroup.visible = !labelGroup.visible;
+    labelsBtn.textContent = labelGroup.visible? '🏷 Labels: on':'🏷 Labels: off';
+    labelsBtn.classList.toggle('active', labelGroup.visible);
+  });
+
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // =========================================================
+  // current-flow animation (conventional current, alternating)
+  // Vm = 20 V peak per half-winding -> secondary rated "20-0-20 V"
+  // =========================================================
+  const Vm = 20;
+  const curD1 = [A,[A[0],1.3,0],[D1C[0]-0.3,1.3,0],[D1C[0]+0.3,1.3,0], merge, X, ...rlZig, [Y[0],groundY,0], groundJ, [groundX, CT[1], CT[2]], CT];
+  const curD2 = [B,[B[0],-1.3,0],[D2C[0]-0.3,-1.3,0],[D2C[0]+0.3,-1.3,0], mergeLower, [1.0,1.3,0], X, ...rlZig, [Y[0],groundY,0], groundJ, [groundX, CT[1], CT[2]], CT];
+  function cumLen(pts){ let l=[0]; for(let i=1;i<pts.length;i++){ const a=new THREE.Vector3(...pts[i-1]), b=new THREE.Vector3(...pts[i]); l.push(l[i-1]+a.distanceTo(b)); } return l; }
+  const lenD1 = cumLen(curD1), lenD2 = cumLen(curD2);
+  function pointAt(pts, lens, frac){
+    const total = lens[lens.length-1];
+    const target = frac*total;
+    let i=1; while(i<lens.length && lens[i]<target) i++;
+    if(i>=lens.length) i=lens.length-1;
+    const segLen = lens[i]-lens[i-1] || 1;
+    const sf = (target-lens[i-1])/segLen;
+    const a = new THREE.Vector3(...pts[i-1]), b = new THREE.Vector3(...pts[i]);
+    return a.clone().lerp(b, sf);
+  }
+  function tangentAt(pts, lens, frac){
+    const eps = 0.015;
+    const p1 = pointAt(pts, lens, Math.max(0, frac-eps));
+    const p2 = pointAt(pts, lens, Math.min(1, frac+eps));
+    return p2.clone().sub(p1).normalize();
+  }
+
+  // a flowing "stream" of arrow markers per branch, like water moving along a pipe
+  const N_MARK = 11;
+  const flowMat = new THREE.MeshStandardMaterial({color:0xff3b4e, roughness:0.3, metalness:0.1, emissive:0x800014, emissiveIntensity:0.8});
+  function makeMarkerSet(){
+    const arr = [];
+    for(let i=0;i<N_MARK;i++){
+      const m = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.2, 12), flowMat);
+      m.visible = false;
+      root.add(m);
+      arr.push(m);
+    }
+    return arr;
+  }
+  const markersD1 = makeMarkerSet();
+  const markersD2 = makeMarkerSet();
+  const UP = new THREE.Vector3(0,1,0);
+
+  let playing = true;
+  let loopPeriod = 2.4; // seconds for one half-cycle pulse (visual pacing, not real 50 Hz)
+  let flowSpeed = 1/3.4; // loops per second along the (now full-loop) wire path — smooth, unhurried pace
+  let clock = new THREE.Clock();
+  let elapsed = 0;
+  let flowT = 0;
+  let activeTab = 1;
+
+  function setDiodeState(dgroup, on){
+    const mat = on ? M.diodeFwd : M.diodeRev;
+    dgroup.userData.cone.material.color.copy(mat.color);
+  }
+
+  const vpVal = document.getElementById('vpVal');
+  const vaVal = document.getElementById('vaVal'), vbVal = document.getElementById('vbVal');
+  const d1St = document.getElementById('d1St'), d2St = document.getElementById('d2St');
+  const Vp = 220; // nominal AC mains input (illustrative)
+
+  function updateMarkers(active, pts, lens){
+    for(let i=0;i<N_MARK;i++){
+      const m = active[i];
+      if(!pts){ m.visible = false; continue; }
+      m.visible = true;
+      const frac = (flowT + i/N_MARK) % 1;
+      m.position.copy(pointAt(pts, lens, frac));
+      const dir = tangentAt(pts, lens, frac);
+      m.quaternion.setFromUnitVectors(UP, dir);
+    }
+  }
+
+  function applyPolarity(d1On){
+    if(d1On){ aPol.setText('(+)'); bPol.setText('(\u2212)'); pTopPol.setText('(+)'); pBotPol.setText('(\u2212)'); }
+    else    { aPol.setText('(\u2212)'); bPol.setText('(+)'); pTopPol.setText('(\u2212)'); pBotPol.setText('(+)'); }
+  }
+  applyPolarity(true);
+
+  // ---- Fig. 14.19-style live waveform panel (tab 3 only) ----
+  const wavePanel = document.getElementById('wavePanel');
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const pathA = document.getElementById('pathA'), pathB = document.getElementById('pathB'), pathOut = document.getElementById('pathOut');
+  const outLabels = document.getElementById('outLabels');
+  const WAVE_WINDOW = loopPeriod * 2.5;
+  function mapY(v, vMin, vMax, yTop, yBottom){ return yBottom - (v-vMin)/(vMax-vMin)*(yBottom-yTop); }
+  function buildWaveCharts(){
+    const N = 140, W = 280;
+    const t0 = elapsed - WAVE_WINDOW;
+    let dA='', dB='', dO='';
+    for(let i=0;i<=N;i++){
+      const tt = t0 + WAVE_WINDOW*i/N;
+      const va = Vm*Math.sin(2*Math.PI*tt/loopPeriod);
+      const vb = -va, vout = Math.abs(va);
+      const x = W*i/N;
+      dA += (i===0?'M':'L') + x.toFixed(1) + ',' + mapY(va,-Vm,Vm,6,50).toFixed(1) + ' ';
+      dB += (i===0?'M':'L') + x.toFixed(1) + ',' + mapY(vb,-Vm,Vm,6,50).toFixed(1) + ' ';
+      dO += (i===0?'M':'L') + x.toFixed(1) + ',' + mapY(vout,0,Vm,8,52).toFixed(1) + ' ';
+    }
+    pathA.setAttribute('d', dA);
+    pathB.setAttribute('d', dB);
+    pathOut.setAttribute('d', dO);
+
+    // "Due to D1 / Due to D2" labels, positioned under each completed hump — exactly like Fig. 14.19
+    while(outLabels.firstChild) outLabels.removeChild(outLabels.firstChild);
+    const half = loopPeriod/2;
+    const kStart = Math.floor(t0/half), kEnd = Math.ceil(elapsed/half);
+    for(let k=kStart; k<=kEnd; k++){
+      const center = (k+0.5)*half;
+      if(center < t0 || center > elapsed) continue;
+      const x = W*(center-t0)/WAVE_WINDOW;
+      const isD1 = (((k%2)+2)%2) === 0;
+      const t = document.createElementNS(svgNS, 'text');
+      t.setAttribute('x', x.toFixed(1)); t.setAttribute('y', '64');
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','8.5');
+      t.setAttribute('fill', isD1 ? '#3fe089' : '#ff5da8');
+      t.textContent = isD1 ? 'D\u2081' : 'D\u2082';
+      outLabels.appendChild(t);
+    }
+  }
+
+  const tabBtn1 = document.getElementById('tabBtn1'), tabBtn2 = document.getElementById('tabBtn2'), tabBtn3 = document.getElementById('tabBtn3');
+  function selectTab(n){
+    activeTab = n;
+    tabBtn1.classList.toggle('active', n===1);
+    tabBtn2.classList.toggle('active', n===2);
+    tabBtn3.classList.toggle('active', n===3);
+    wavePanel.style.display = (n===3) ? 'block' : 'none';
+    elapsed = 0; flowT = 0;
+    if(n!==3) applyPolarity(n===1);
+  }
+  tabBtn1.addEventListener('click', ()=>selectTab(1));
+  tabBtn2.addEventListener('click', ()=>selectTab(2));
+  tabBtn3.addEventListener('click', ()=>selectTab(3));
+
+  let prevD1OnCycle = true;
+
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    if(playing){ elapsed += dt; flowT = (flowT + dt*flowSpeed) % 1; }
+
+    let d1On, d2On, vp, va, vb, sx, sy;
+
+    if(activeTab===3){
+      // continuous alternating current, like the real circuit — like an actual play/oscilloscope engine
+      const phase = Math.sin(2*Math.PI*elapsed/loopPeriod);
+      d1On = phase > 0.02; d2On = phase < -0.02;
+      vp = Vp*phase; va = Vm*phase; vb = -Vm*phase;
+      sx = -0.32 + 0.64*((elapsed % loopPeriod)/loopPeriod);
+      sy = srcY + 0.2*Math.sin((elapsed % loopPeriod)/loopPeriod*2*Math.PI);
+      if(d1On !== prevD1OnCycle && (d1On || d2On)){ applyPolarity(d1On); prevD1OnCycle = d1On; }
+      buildWaveCharts();
+    } else {
+      const tau = (elapsed % loopPeriod) / loopPeriod;
+      const mag = Math.sin(Math.PI*tau);
+      const sign = activeTab===1 ? 1 : -1;
+      d1On = activeTab===1; d2On = activeTab===2;
+      vp = sign*Vp*mag; va = sign*Vm*mag; vb = -sign*Vm*mag;
+      sx = -0.32 + 0.64*tau;
+      sy = srcY + sign*0.2*Math.sin(tau*Math.PI);
+    }
+
+    setDiodeState(d1, d1On);
+    setDiodeState(d2, d2On);
+    updateMarkers(markersD1, d1On?curD1:null, lenD1);
+    updateMarkers(markersD2, d2On?curD2:null, lenD2);
+
+    vpVal.textContent = (vp>=0?'+':'') + vp.toFixed(1) + ' V';
+    vaVal.textContent = (va>=0?'+':'') + va.toFixed(1) + ' V';
+    vbVal.textContent = (vb>=0?'+':'') + vb.toFixed(1) + ' V';
+    d1St.textContent = d1On? 'forward — ON' : 'reverse — off';
+    d2St.textContent = d2On? 'forward — ON' : 'reverse — off';
+
+    sineDot.position.set(srcX+sx, sy, 0.06);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  document.getElementById('playBtn').addEventListener('click', (e)=>{
+    playing = !playing;
+    e.target.textContent = playing? '⏸ Pause current':'▶ Play current';
+  });
+})();
+</script>
+
+</body>
+</html>
