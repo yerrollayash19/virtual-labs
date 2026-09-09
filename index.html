@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Virtual Labs - Class 12 Physics</title>
+  <title>Virtual Labs - Physics</title>
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
@@ -93,23 +93,25 @@
   </nav>
 
   <section class="hero">
-    <h1>VIRTUAL LABS: <span>CLASS 12 EXPERIMENTS</span></h1>
+    <h1>VIRTUAL LABS: <span>PHYSICS EXPERIMENTS & VISUALIZATIONS</span></h1>
     <p>Explore, Simulate, and Learn: Interactive Physics Science Previews & Experiments</p>
   </section>
 
   <div class="controls">
-    <input type="text" id="searchInput" class="search-bar" placeholder="Search experiments..." onkeyup="filterLabs()">
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search experiments and visualizations..." onkeyup="filterLabs()">
     <div class="tabs-container">
       <button class="tab-btn active" onclick="switchTab('all', this)">All</button>
       <button class="tab-btn" onclick="switchTab('current-electricity', this)">Current Electricity</button>
       <button class="tab-btn" onclick="switchTab('optics', this)">Ray Optics</button>
       <button class="tab-btn" onclick="switchTab('electronics', this)">Semiconductor Electronics</button>
+      <button class="tab-btn" onclick="switchTab('visualizations', this)">Visualizations</button>
       <button class="tab-btn" onclick="switchTab('tools', this)">Additional Tools</button>
     </div>
   </div>
 
   <main class="grid" id="labGrid">
 
+    <!-- Experiments -->
     <div class="card" data-category="current-electricity" data-title="Resistivity of Wires Potential Difference Current Ohm Law Graph">
       <div>
         <span class="tag">Current Electricity</span>
@@ -176,6 +178,30 @@
       </div>
     </div>
 
+    <!-- Conceptual Visualizations -->
+    <div class="card" data-category="visualizations" data-title="Magnetic Field Axis Circular Current Loop Biot Savart Law">
+      <div>
+        <span class="tag">Visualizations</span>
+        <h3>8. Magnetic Field on Loop Axis</h3>
+        <p>3D vector visualization and field graph for the magnetic field along the axis of a circular current loop.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=circular-loop-field" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
+
+    <div class="card" data-category="visualizations" data-title="Capacitor Charging Discharging RC Circuit Time Constant">
+      <div>
+        <span class="tag">Visualizations</span>
+        <h3>9. Capacitor Charging & Discharging</h3>
+        <p>Interactive simulation plotting charge accumulation, potential, and current decay over time in RC circuits.</p>
+      </div>
+      <div class="btn-group">
+        <a href="preview.html?id=capacitor-charging" class="btn btn-primary">View Preview & Start</a>
+      </div>
+    </div>
+
+    <!-- Additional Tools -->
     <div class="card" data-category="tools" data-title="Screw Gauge Micrometer Measurement Pitch Least Count">
       <div>
         <span class="tag">Additional Tools</span>
@@ -192,7 +218,7 @@
   <section class="about-section" id="about">
     <div class="about-card">
       <h2>About Virtual Labs</h2>
-      <p>Virtual Labs is an interactive learning platform designed for Class 12 Physics students. It bridges the gap between theoretical knowledge and practical application through interactive web simulations.</p>
+      <p>Virtual Labs is an interactive learning platform designed for Physics students. It bridges the gap between theoretical knowledge and practical application through interactive web simulations.</p>
       
       <div class="team-credits">
         <div class="credit-group">
