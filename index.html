@@ -1,184 +1,785 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Physics Visualizations</title>
-  <style>
-    /* Global Reset & Base Styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysLab 3D - Interactive Physics Simulations</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --bg-card: rgba(22, 27, 34, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.4);
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --font-main: 'Outfit', sans-serif;
+            --font-heading: 'Space Grotesk', sans-serif;
+        }
 
-    body {
-      background-color: #06090e;
-      color: #e8edf2;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* Top Navigation Bar Layout */
-    .navbar {
-      display: flex;
-      align-items: center;
-      background-color: #0a0e14;
-      border-bottom: 1px solid #1f2833;
-      padding: 0 24px;
-      height: 60px;
-    }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
 
-    .nav-container {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      justify-content: space-between;
-    }
+        /* Header & Nav */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 5%;
+            backdrop-filter: blur(12px);
+            background: rgba(10, 12, 16, 0.6);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-    .nav-logo {
-      color: #00d2ff;
-      font-weight: 700;
-      font-size: 18px;
-      text-decoration: none;
-      letter-spacing: 0.5px;
-    }
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
+        .logo span {
+            color: var(--primary);
+        }
 
-    .nav-item {
-      color: #e8edf2;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.15s ease;
-    }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
 
-    .nav-item:hover {
-      color: #ffd166;
-    }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
 
-    /* Visualizations Dropdown Controls */
-    .dropdown {
-      position: relative;
-    }
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary);
+        }
 
-    .dropdown-btn {
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0;
-    }
+        /* Container Layout */
+        main {
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 5%;
+        }
 
-    .dropdown-btn .arrow {
-      font-size: 10px;
-      transition: transform 0.2s ease;
-    }
+        /* Hero Section */
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 4rem 0 3rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
 
-    .dropdown:hover .arrow {
-      transform: rotate(180deg);
-    }
+        .badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--accent-cyan);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
 
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background-color: #10151d;
-      min-width: 310px;
-      box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.5);
-      border: 1px solid #1f2833;
-      border-radius: 8px;
-      padding: 12px 0;
-      margin-top: 12px;
-      z-index: 1000;
-    }
+        .hero h1 {
+            font-family: var(--font-heading);
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    .dropdown:hover .dropdown-content {
-      display: block;
-    }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
 
-    /* Chapter Segregation Styling */
-    .dropdown-group {
-      padding: 6px 16px;
-    }
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+        }
 
-    .dropdown-group:not(:last-child) {
-      border-bottom: 1px solid #1f2833;
-      margin-bottom: 8px;
-      padding-bottom: 12px;
-    }
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-    .chapter-title {
-      display: block;
-      font-size: 11px;
-      font-weight: 700;
-      color: #7f8ea3;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 8px;
-    }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
 
-    .dropdown-content a {
-      color: #e8edf2;
-      padding: 6px 0;
-      text-decoration: none;
-      display: block;
-      font-size: 13.5px;
-      transition: color 0.15s ease;
-    }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
+        }
 
-    .dropdown-content a:hover {
-      color: #ffd166;
-    }
-  </style>
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Section Layouts */
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .section-header h2 {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover, .tab-btn.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        /* Grid & Cards */
+        .experiments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .exp-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .exp-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .card-image-wrapper {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+            background: #111827;
+        }
+
+        .card-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .exp-card:hover .card-image-wrapper img {
+            transform: scale(1.05);
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(10, 12, 16, 0.75);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .card-header {
+            margin-bottom: 0.8rem;
+        }
+
+        .card-category {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .card-title {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            color: #fff;
+        }
+
+        .card-description {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .card-footer {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-footer .btn {
+            flex: 1;
+            padding: 0.6rem 0;
+            font-size: 0.85rem;
+            justify-content: center;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #161b22;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin: auto;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-btn {
+            color: var(--text-muted);
+            position: absolute;
+            top: 1.2rem;
+            right: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .modal-title {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+        }
+
+        .modal-body {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .modal-body h4 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .modal-body ul {
+            margin-left: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* About Section */
+        .about-section {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            padding: 3rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .about-section h2 {
+            font-family: var(--font-heading);
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .about-section p {
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Features Overview */
+        .features-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 4rem;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .feature-item h3 {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .feature-item p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { gap: 1rem; }
+        }
+    </style>
 </head>
 <body>
 
-  <!-- Top Navigation Bar Header -->
-  <header class="navbar">
-    <div class="nav-container">
-      <a href="/" class="nav-logo">Physics Visualizations</a>
-      
-      <!-- Integrated Top-level Navigation Links -->
-      <nav class="nav-links">
-        <a href="/index.html" class="nav-item">Home</a>
-        <a href="/experiments.html" class="nav-item">Experiments</a>
-        <a href="/about.html" class="nav-item">About</a>
-        
-        <!-- Inline Dropdown Section for 3D Visualizations -->
-        <div class="nav-item dropdown">
-          <button class="dropdown-btn">
-            Visualizations <span class="arrow">▾</span>
-          </button>
-          
-          <div class="dropdown-content">
-            
-            <!-- Chapter: Electrostatics & Capacitance -->
-            <div class="dropdown-group">
-              <span class="chapter-title">Electrostatics & Capacitance</span>
-              <a href="capacitor_charging_3d_2.html">Charging a Parallel Plate Capacitor (3D)</a>
-            </div>
+    <header>
+        <a href="#" class="logo" onclick="showSection('home'); return false;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            PhysLab <span>3D</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#home" onclick="showSection('home'); return false;" id="nav-home" class="active">Home</a></li>
+            <li><a href="#experiments" onclick="showSection('experiments'); return false;" id="nav-experiments">Experiments</a></li>
+            <li><a href="#visualisations" onclick="showSection('visualisations'); return false;" id="nav-visualisations">Visualisations</a></li>
+            <li><a href="#about" onclick="showSection('about'); return false;" id="nav-about">About</a></li>
+        </ul>
+    </header>
 
-            <!-- Chapter: Moving Charges & Magnetism -->
-            <div class="dropdown-group">
-              <span class="chapter-title">Moving Charges & Magnetism</span>
-              <a href="circular_loop_axis_field_2.html">Magnetic Field on Axis of Circular Loop (NCERT 4.9)</a>
+    <main>
+        <!-- HERO SECTION -->
+        <div class="hero">
+            <span class="badge">Next-Gen Physics Learning</span>
+            <h1>Interactive Physics Experiments in 3D</h1>
+            <p>Explore complex physics concepts through real-time Three.js simulations, precise parameter controls, and dynamic visual representations.</p>
+            <div class="cta-group">
+                <button class="btn btn-primary" onclick="showSection('experiments')">Explore Experiments</button>
+                <button class="btn btn-secondary" onclick="showSection('visualisations')">View Visualisations</button>
             </div>
-
-          </div>
         </div>
-      </nav>
-    </div>
-  </header>
 
+        <div class="features-overview">
+            <div class="feature-item">
+                <h3>Real-time 3D Engine</h3>
+                <p>Powered by Three.js for realistic render loops, lighting, and spatial calculations directly in your browser.</p>
+            </div>
+            <div class="feature-item">
+                <h3>Interactive Controls</h3>
+                <p>Adjust variables like potential, charge, magnetic flux, and focal lengths in real time to see physical outputs.</p>
+            </div>
+            <div class="feature-item">
+                <h3>Theory & Insights</h3>
+                <p>Every setup includes mathematical derivations, live data graphs, and conceptual summaries for deep learning.</p>
+            </div>
+        </div>
+
+        <!-- EXPERIMENTS SECTION -->
+        <div class="experiments-section" id="experiments" style="display: none;">
+            <div class="section-header">
+                <h2>Interactive Experiments</h2>
+                <p>Select a laboratory simulation to launch interactive controls and theoretical models.</p>
+            </div>
+
+            <div class="category-tabs">
+                <button class="tab-btn active" onclick="filterCategory('all')">All</button>
+                <button class="tab-btn" onclick="filterCategory('current-electricity')">Current Electricity</button>
+                <button class="tab-btn" onclick="filterCategory('ray-optics')">Ray Optics</button>
+                <button class="tab-btn" onclick="filterCategory('electrostatics')">Electrostatics</button>
+                <button class="tab-btn" onclick="filterCategory('magnetism')">Magnetism</button>
+            </div>
+
+            <div class="experiments-grid" id="expGrid">
+                <!-- Experiment 1: Charging Capacitor -->
+                <div class="exp-card" data-category="current-electricity">
+                    <div class="card-image-wrapper">
+                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Charging Capacitor">
+                        <span class="card-badge">Interactive 3D</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <span class="card-category">Current Electricity</span>
+                            <h3 class="card-title">Charging of a Capacitor</h3>
+                        </div>
+                        <p class="card-description">Examine RC circuit dynamics, transient charge accumulation, and exponential voltage curves in real time.</p>
+                        <div class="card-footer">
+                            <button class="btn btn-secondary" onclick="openTheoryModal('capacitor')">Theory & Models</button>
+                            <a href="preview.html?id=capacitor-charging" class="btn btn-primary">Launch</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experiment 2: Circular Loop Axis Field -->
+                <div class="exp-card" data-category="magnetism">
+                    <div class="card-image-wrapper">
+                        <img src="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop" alt="Circular Loop Magnetic Field">
+                        <span class="card-badge">Interactive 3D</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <span class="card-category">Magnetism</span>
+                            <h3 class="card-title">Circular Loop Axial Field</h3>
+                        </div>
+                        <p class="card-description">Plot Biot-Savart vector distributions along the central axis of a current loop with 3D field line vectors.</p>
+                        <div class="card-footer">
+                            <button class="btn btn-secondary" onclick="openTheoryModal('circular-loop')">Theory & Models</button>
+                            <a href="preview.html?id=circular-loop-field" class="btn btn-primary">Launch</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISUALISATIONS SECTION -->
+        <div class="experiments-section" id="visualisations" style="display: none;">
+            <div class="section-header">
+                <h2>3D Visualisations</h2>
+                <p>Interactive standalone 3D simulations focusing on physical representations and field geometry.</p>
+            </div>
+
+            <div class="category-tabs">
+                <button class="tab-btn active" onclick="filterVisCategory('all')">All</button>
+                <button class="tab-btn" onclick="filterVisCategory('electrostatics')">Electrostatics</button>
+                <button class="tab-btn" onclick="filterVisCategory('current-electricity')">Current Electricity</button>
+                <button class="tab-btn" onclick="filterVisCategory('magnetism')">Magnetism</button>
+            </div>
+
+            <div class="experiments-grid" id="visGrid">
+                <!-- Capacitor Visualisation Card -->
+                <div class="exp-card" data-vis-category="current-electricity">
+                    <div class="card-image-wrapper">
+                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop" alt="Capacitor Charging 3D">
+                        <span class="card-badge">3D Standalone</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <span class="card-category">Current Electricity</span>
+                            <h3 class="card-title">Capacitor Charging 3D</h3>
+                        </div>
+                        <p class="card-description">Interactive 3D visualization showing charge accumulation and potential growth across a capacitor during charging.</p>
+                        <div class="card-footer">
+                            <button class="btn btn-secondary" onclick="openTheoryModal('capacitor')">Theory & Models</button>
+                            <a href="capacitor_charging_3d_3.html" class="btn btn-primary">Launch Visualisation</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Circular Loop Visualisation Card -->
+                <div class="exp-card" data-vis-category="magnetism">
+                    <div class="card-image-wrapper">
+                        <img src="https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop" alt="Circular Loop Field">
+                        <span class="card-badge">3D Standalone</span>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <span class="card-category">Magnetism</span>
+                            <h3 class="card-title">Circular Loop Axial Field</h3>
+                        </div>
+                        <p class="card-description">3D field line representation and magnetic field vector plotting along the axis of a current-carrying circular loop.</p>
+                        <div class="card-footer">
+                            <button class="btn btn-secondary" onclick="openTheoryModal('circular-loop')">Theory & Models</button>
+                            <a href="circular_loop_axis_field_3.html" class="btn btn-primary">Launch Visualisation</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABOUT SECTION -->
+        <div class="about-section" id="about">
+            <h2>About PhysLab 3D</h2>
+            <p>PhysLab 3D is an interactive web platform designed to help students, educators, and physics enthusiasts visualize complex physical phenomena in 3D real-time rendering environments.</p>
+            <p>Built using modern web technologies including WebGL, Three.js, and HTML5 Canvas, our simulations enable intuitive experimentation with physical parameters, real-time mathematical graphing, and comprehensive structural theory.</p>
+        </div>
+    </main>
+
+    <!-- THEORY MODAL -->
+    <div id="theoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeTheoryModal()">&times;</span>
+            <h3 class="modal-title" id="modalTitle">Experiment Theory & Models</h3>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic Content Loaded Here -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PhysLab 3D - Interactive Physics Platform. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Section Switching Engine
+        function showSection(sectionId) {
+            const experimentsSection = document.getElementById('experiments');
+            const visualisationsSection = document.getElementById('visualisations');
+            const aboutSection = document.getElementById('about');
+            const heroSection = document.querySelector('.hero');
+            const featuresSection = document.querySelector('.features-overview');
+
+            // Hide all sections
+            experimentsSection.style.display = 'none';
+            visualisationsSection.style.display = 'none';
+            aboutSection.style.display = 'none';
+            heroSection.style.display = 'none';
+            featuresSection.style.display = 'none';
+
+            // Remove active states from nav
+            document.getElementById('nav-home')?.classList.remove('active');
+            document.getElementById('nav-experiments')?.classList.remove('active');
+            document.getElementById('nav-visualisations')?.classList.remove('active');
+            document.getElementById('nav-about')?.classList.remove('active');
+
+            // Active section display logic
+            if (sectionId === 'experiments') {
+                experimentsSection.style.display = 'block';
+                document.getElementById('nav-experiments')?.classList.add('active');
+            } else if (sectionId === 'visualisations') {
+                visualisationsSection.style.display = 'block';
+                document.getElementById('nav-visualisations')?.classList.add('active');
+            } else if (sectionId === 'about') {
+                aboutSection.style.display = 'block';
+                document.getElementById('nav-about')?.classList.add('active');
+            } else { // 'home'
+                heroSection.style.display = 'flex';
+                featuresSection.style.display = 'grid';
+                document.getElementById('nav-home')?.classList.add('active');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Experiment Category Filter
+        function filterCategory(category) {
+            const buttons = document.querySelectorAll('#experiments .tab-btn');
+            const cards = document.querySelectorAll('#expGrid .exp-card');
+
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Visualisations Category Filter
+        function filterVisCategory(category) {
+            const buttons = document.querySelectorAll('#visualisations .tab-btn');
+            const cards = document.querySelectorAll('#visGrid .exp-card');
+
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.visCategory === category) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Theory & Models Data
+        const theoryData = {
+            'capacitor': {
+                title: 'Capacitor Charging Dynamics',
+                content: `
+                    <h4>Theoretical Overview</h4>
+                    <p>When a DC voltage source is connected to a series resistor and capacitor, charge accumulates exponentially on the capacitor plates.</p>
+                    <h4>Governing Formulas</h4>
+                    <ul>
+                        <li><strong>Charge Growth:</strong> q(t) = Q₀ (1 - e^(-t / RC))</li>
+                        <li><strong>Voltage Across Capacitor:</strong> V_c(t) = V₀ (1 - e^(-t / RC))</li>
+                        <li><strong>Circuit Current:</strong> I(t) = (V₀ / R) e^(-t / RC)</li>
+                        <li><strong>Time Constant (τ):</strong> τ = R × C</li>
+                    </ul>
+                    <h4>Key Characteristics</h4>
+                    <p>At t = τ, the capacitor reaches approximately 63.2% of its maximum voltage V₀. Full charge is theoretically reached after 5τ.</p>
+                `
+            },
+            'circular-loop': {
+                title: 'Circular Loop Axial Magnetic Field',
+                content: `
+                    <h4>Theoretical Overview</h4>
+                    <p>The magnetic field produced along the symmetry axis (x-axis) of a current-carrying circular loop of radius R carrying current I is derived using the Biot-Savart Law.</p>
+                    <h4>Governing Formula</h4>
+                    <ul>
+                        <li><strong>Axial Field Strength:</strong> B(x) = (μ₀ I R²) / [ 2 (R² + x²)^(3/2) ]</li>
+                        <li><strong>Center Field (x = 0):</strong> B_center = (μ₀ I) / (2 R)</li>
+                    </ul>
+                    <h4>Key Characteristics</h4>
+                    <p>The magnetic field direction follows the right-hand rule and attains its peak value directly at the center of the loop.</p>
+                `
+            }
+        };
+
+        // Modal Functionality
+        function openTheoryModal(modelKey) {
+            const modal = document.getElementById('theoryModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            if (theoryData[modelKey]) {
+                modalTitle.innerText = theoryData[modelKey].title;
+                modalBody.innerHTML = theoryData[modelKey].content;
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeTheoryModal() {
+            document.getElementById('theoryModal').style.display = 'none';
+        }
+
+        // Close modal when clicking backdrop
+        window.onclick = function(event) {
+            const modal = document.getElementById('theoryModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>
