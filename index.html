@@ -3,367 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Virtual Labs - Class 12 Physics</title>
+  <title>Experiment Preview - Virtual Labs</title>
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #bae6fd 100%);
-      --card-bg: rgba(255, 255, 255, 0.88);
+      --card-bg: rgba(255, 255, 255, 0.92);
       --border: rgba(186, 230, 253, 0.8);
       --text-main: #0f172a;
       --text-muted: #475569;
       --primary: #0284c7;
       --primary-hover: #0369a1;
-      --accent-tag: #e0f2fe;
-      --secondary-btn: #475569;
-      --secondary-btn-hover: #334155;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    html { scroll-behavior: smooth; }
-    body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding-bottom: 3rem; position: relative; overflow-x: hidden; }
+    body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding: 2rem 1rem; }
 
-    /* Animated Physics Background Canvas */
-    #physics-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.45; }
-
-    /* Navigation Bar */
-    nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 8%; max-width: 1300px; margin: 0 auto; position: relative; z-index: 10; }
-    .logo img { height: 44px; width: auto; border-radius: 8px; object-fit: contain; transition: transform 0.3s; }
-    .logo img:hover { transform: scale(1.03); }
-    .nav-links { display: flex; gap: 2rem; list-style: none; }
-    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; transition: color 0.2s; }
-    .nav-links a:hover { color: var(--primary); }
-
-    /* Hero Section */
-    .hero { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 800px; margin: 0 auto; position: relative; z-index: 10; }
-    .hero h1 { font-size: 2.6rem; font-weight: 800; color: var(--text-main); line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
-    .hero h1 span { color: var(--primary); display: block; }
-    .hero p { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-
-    /* Search & Controls */
-    .controls { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem; position: relative; z-index: 10; }
-    .search-bar { padding: 0.8rem 1.25rem; width: 100%; max-width: 480px; border-radius: 50px; border: 1px solid var(--border); background: #ffffff; color: var(--text-main); font-size: 0.95rem; outline: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); transition: all 0.3s ease; }
-    .search-bar:focus { border-color: var(--primary); box-shadow: 0 4px 16px rgba(2, 132, 199, 0.2); }
-
-    /* Filter Tabs */
-    .tabs-container { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
-    .tab-btn { background: #ffffff; border: 1px solid var(--border); color: var(--text-muted); padding: 0.5rem 1.25rem; border-radius: 50px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: all 0.25s ease; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02); }
-    .tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
-    .tab-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
-
-    /* Section Headers */
-    .section-title { max-width: 1200px; margin: 2rem auto 1.5rem auto; padding: 0 1.5rem; font-size: 1.6rem; font-weight: 700; color: var(--text-main); position: relative; z-index: 10; border-left: 4px solid var(--primary); margin-left: auto; padding-left: 1rem; }
-
-    /* Cards Grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
-    .card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .card:hover { transform: translateY(-6px); box-shadow: 0 20px 30px -10px rgba(2, 132, 199, 0.18); border-color: var(--primary); }
+    .container { max-width: 900px; margin: 0 auto; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; box-shadow: 0 15px 35px rgba(0,0,0,0.06); backdrop-filter: blur(10px); }
     
-    .tag { display: inline-block; background: var(--accent-tag); color: var(--primary); padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.75rem; width: fit-content; text-transform: uppercase; }
-    .card h3 { font-size: 1.15rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.4; }
-    .card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.5rem; flex-grow: 1; }
+    .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--primary); font-weight: 600; margin-bottom: 1.5rem; transition: transform 0.2s; }
+    .back-btn:hover { transform: translateX(-3px); }
 
-    .btn-group { display: flex; gap: 0.75rem; }
-    .btn { flex: 1; padding: 0.7rem; border-radius: 8px; text-decoration: none; text-align: center; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-primary { background: var(--primary); color: #ffffff; }
-    .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); }
-    .btn-secondary { background: var(--secondary-btn); color: #ffffff; }
-    .btn-secondary:hover { background: var(--secondary-btn-hover); box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3); }
+    h1 { font-size: 2rem; margin-bottom: 0.75rem; color: var(--text-main); }
+    .tag { display: inline-block; background: #e0f2fe; color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 1rem; }
+    .description { color: var(--text-muted); line-height: 1.6; font-size: 1.05rem; margin-bottom: 2rem; }
 
-    /* About Section & Team Credits */
-    .about-section { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1.5rem; position: relative; z-index: 10; }
-    .about-card { background: var(--card-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); border-radius: 16px; padding: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-    .about-card h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 0.75rem; }
-    .about-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    /* Graphic Preview / Slideshow */
+    .preview-graphic { width: 100%; height: 320px; background: #0f172a; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #38bdf8; position: relative; overflow: hidden; margin-bottom: 2rem; border: 1px solid var(--border); }
+    .preview-graphic h3 { font-size: 1.5rem; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+    .preview-graphic p { color: #94a3b8; font-size: 0.95rem; }
 
-    .team-credits { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
-    .credit-group h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 0.5rem; }
-    .credit-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
-    .credit-list li { background: #ffffff; border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.88rem; font-weight: 600; color: var(--text-main); }
+    .section-title { font-size: 1.2rem; color: var(--primary); margin: 1.5rem 0 0.75rem 0; border-left: 4px solid var(--primary); padding-left: 0.6rem; }
+    .list { list-style-position: inside; color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
 
-    footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2.5rem 1rem 1rem 1rem; margin-top: 2rem; border-top: 1px solid var(--border); position: relative; z-index: 10; }
+    .launch-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .btn-launch { background: var(--primary); color: white; padding: 0.9rem 2rem; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1rem; transition: all 0.25s ease; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3); }
+    .btn-launch:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4); }
   </style>
 </head>
 <body>
 
-  <!-- Background Physics Particles -->
-  <canvas id="physics-bg"></canvas>
+  <div class="container">
+    <a href="index.html" class="back-btn">&larr; Back to All Experiments</a>
+    
+    <span class="tag" id="expCategory">Category</span>
+    <h1 id="expTitle">Experiment Title</h1>
+    <p class="description" id="expDesc">Description loading...</p>
 
-  <nav>
-    <a href="#" class="logo">
-      <img src="logo.png" alt="Virtual Labs Logo" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/yerrollayash19/virtual-labs/main/logo.png';">
-    </a>
-    <ul class="nav-links">
-      <li><a href="#">Home</a></li>
-      <li><a href="#labGrid">Experiments</a></li>
-      <li><a href="#visualisations">Visualisations</a></li>
-      <li><a href="#about">About</a></li>
-    </ul>
-  </nav>
+    <div class="preview-graphic">
+      <h3 id="graphicTitle">Interactive Simulation Preview</h3>
+      <p id="graphicSub">3D Apparatus Setup & Controls</p>
+    </div>
 
-  <section class="hero">
-    <h1>VIRTUAL LABS: <span>CLASS 12 EXPERIMENTS</span></h1>
-    <p>Explore, Simulate, and Learn: Interactive Physics Science Previews & Experiments</p>
-  </section>
+    <h3 class="section-title">Key Objectives</h3>
+    <ul class="list" id="expObjectives"></ul>
 
-  <div class="controls">
-    <input type="text" id="searchInput" class="search-bar" placeholder="Search experiments and visualisations..." onkeyup="filterLabs()">
-    <div class="tabs-container">
-      <button class="tab-btn active" onclick="switchTab('all', this)">All</button>
-      <button class="tab-btn" onclick="switchTab('current-electricity', this)">Current Electricity</button>
-      <button class="tab-btn" onclick="switchTab('optics', this)">Ray Optics</button>
-      <button class="tab-btn" onclick="switchTab('electronics', this)">Semiconductor Electronics</button>
-      <button class="tab-btn" onclick="switchTab('tools', this)">Additional Tools</button>
+    <h3 class="section-title">Formulae & Concepts</h3>
+    <ul class="list" id="expFormulas"></ul>
+
+    <div class="launch-bar">
+      <span>Ready to perform the experiment?</span>
+      <a href="#" id="launchBtn" class="btn-launch">Launch Interactive Lab &rarr;</a>
     </div>
   </div>
 
-  <div class="section-title">Experiments</div>
-  <main class="grid" id="labGrid">
-
-    <div class="card" data-category="current-electricity" data-title="Resistivity of Wires Potential Difference Current Ohm Law Graph">
-      <div>
-        <span class="tag">Current Electricity</span>
-        <h3>1. Wire Resistivity (V vs I Graph)</h3>
-        <p>Determine resistivity of wires by plotting potential difference versus current graphs.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=wire-resistivity" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="current-electricity" data-title="Resistance Metre Bridge Standard Resistor Wire">
-      <div>
-        <span class="tag">Current Electricity</span>
-        <h3>2. Resistance using Metre Bridge</h3>
-        <p>Find unknown resistance using a metre bridge apparatus with Wheatstone bridge balance principles.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=meter-bridge" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="current-electricity" data-title="Series Parallel Combination Resistance Metre Bridge">
-      <div>
-        <span class="tag">Current Electricity</span>
-        <h3>3. Series & Parallel Combination</h3>
-        <p>Verify equivalent resistance laws for series and parallel resistor networks using metre bridge.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=metre-bridge-combination" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="optics" data-title="Concave Mirror Focal Length u v Values">
-      <div>
-        <span class="tag">Ray Optics</span>
-        <h3>4. Concave Mirror Focal Length</h3>
-        <p>Simulate image formation and calculate focal length by observing u and v relations.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=concave-mirror" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="optics" data-title="Convex Lens Focal Length u v Graphs 1/u 1/v">
-      <div>
-        <span class="tag">Ray Optics</span>
-        <h3>5. Convex Lens Focal Length</h3>
-        <p>Determine lens focal length using interactive u-v plots and inverse linear graph fits.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=convex-lens" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="electronics" data-title="PN Junction Diode IV Characteristic Forward Reverse Bias">
-      <div>
-        <span class="tag">Electronics</span>
-        <h3>6. P-N Junction Diode</h3>
-        <p>Draw I-V characteristics for semiconductor diodes in forward and reverse bias setups.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=p-n-junction-diode" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="tools" data-title="Screw Gauge Micrometer Measurement Pitch Least Count">
-      <div>
-        <span class="tag">Additional Tools</span>
-        <h3>7. Screw Gauge Tool</h3>
-        <p>3D interactive micrometer simulator for wire thickness and zero-error practice.</p>
-      </div>
-      <div class="btn-group">
-        <a href="preview.html?id=screw-gauge" class="btn btn-primary">View Preview & Start</a>
-      </div>
-    </div>
-
-  </main>
-
-  <div class="section-title" id="visualisations">Visualisations</div>
-  <main class="grid">
-
-    <div class="card" data-category="current-electricity" data-title="Charging a Parallel Plate Capacitor 3D Visualization Electrostatics">
-      <div>
-        <span class="tag">Current Electricity</span>
-        <h3>1. Charging a Parallel Plate Capacitor</h3>
-        <p>3D visualization showing electron flow, charge accumulation, electric fields, and dynamic Q(t) / I(t) charts during capacitor charging.</p>
-      </div>
-      <div class="btn-group">
-        <a href="capacitor_charging_3d.html" class="btn btn-primary" target="_blank">Launch Visualisation</a>
-        <a href="capacitor_charging_3d.html" download class="btn btn-secondary">Download</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="current-electricity" data-title="Magnetic Field on Axis of Circular Current Loop 3D Visualization Biot Savart">
-      <div>
-        <span class="tag">Current Electricity</span>
-        <h3>2. Circular Loop Axis Field</h3>
-        <p>Interactive 3D demonstration of magnetic fields along the axis of a current loop using Biot–Savart law calculations and directional rules.</p>
-      </div>
-      <div class="btn-group">
-        <a href="circular_loop_axis_field.html" class="btn btn-primary" target="_blank">Launch Visualisation</a>
-        <a href="circular_loop_axis_field.html" download class="btn btn-secondary">Download</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="electronics" data-title="Full Wave Rectifier 3D Visualization AC DC Conversion">
-      <div>
-        <span class="tag">Electronics</span>
-        <h3>3. Full Wave Rectifier</h3>
-        <p>3D visualization demonstrating AC to DC conversion, diode conduction states, and smoothed output waveforms across a full wave rectifier circuit.</p>
-      </div>
-      <div class="btn-group">
-        <a href="full_wave_rectifier_3d.html" class="btn btn-primary" target="_blank">Launch Visualisation</a>
-        <a href="full_wave_rectifier_3d.html" download class="btn btn-secondary">Download</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="tools" data-title="Gauss Law Ghost Cubes Flux Electrostatics Surface Area">
-      <div>
-        <span class="tag">Additional Tools</span>
-        <h3>4. Gauss Law (Ghost Cubes)</h3>
-        <p>Interactive Gaussian surface visualization calculating electric flux passing through closed cubic surfaces surrounding point charges.</p>
-      </div>
-      <div class="btn-group">
-        <a href="gauss_ghost_cubes.html" class="btn btn-primary" target="_blank">Launch Visualisation</a>
-        <a href="gauss_ghost_cubes.html" download class="btn btn-secondary">Download</a>
-      </div>
-    </div>
-
-    <div class="card" data-category="electronics" data-title="PN Junction Formation Depletion Layer Barrier Potential Semiconductor">
-      <div>
-        <span class="tag">Electronics</span>
-        <h3>5. P-N Junction Formation</h3>
-        <p>Visual representation of charge carrier diffusion, recombination, depletion region formation, and built-in potential barrier setup across a semiconductor junction.</p>
-      </div>
-      <div class="btn-group">
-        <a href="pn_junction_formation.html" class="btn btn-primary" target="_blank">Launch Visualisation</a>
-        <a href="pn_junction_formation.html" download class="btn btn-secondary">Download</a>
-      </div>
-    </div>
-
-  </main>
-
-  <section class="about-section" id="about">
-    <div class="about-card">
-      <h2>About Virtual Labs</h2>
-      <p>Virtual Labs is an interactive learning platform designed for Class 12 Physics students. It bridges the gap between theoretical knowledge and practical application through interactive web simulations.</p>
-      
-      <div class="team-credits">
-        <div class="credit-group">
-          <h4>Made by</h4>
-          <ul class="credit-list">
-            <li>Yash Yerrolla</li>
-            <li>Soham Takalkar</li>
-            <li>Riyansh Upadhyay</li>
-            <li>Shawn Paul</li>
-          </ul>
-        </div>
-        <div class="credit-group">
-          <h4>Under the Guidance of</h4>
-          <ul class="credit-list">
-            <li>Mr. Manohar</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <p>&copy; Virtual Labs. Built for interactive science education.</p>
-  </footer>
-
   <script>
-    // Particle animation logic
-    const canvas = document.getElementById('physics-bg');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
+    const expData = {
+      'wire-resistivity': {
+        title: '1. Wire Resistivity (V vs I Graph)',
+        category: 'Current Electricity',
+        desc: 'Measure electric current and potential difference to verify Ohm’s law and calculate resistance per unit length.',
+        file: 'wire-resistivity.html',
+        objectives: ['Plot V vs I characteristic curve', 'Determine resistance from graph slope', 'Calculate specific wire resistivity'],
+        formulas: ['V = I × R (Ohm’s Law)', 'Resistivity ρ = (R × A) / L']
+      },
+      'meter-bridge': {
+        title: '2. Resistance using Metre Bridge',
+        category: 'Current Electricity',
+        desc: 'Find the unknown resistance of a resistor or metallic wire using Wheatstone bridge principles.',
+        file: 'meter-bridge.html',
+        objectives: ['Locate null point on 100 cm wire', 'Calculate unknown resistance R'],
+        formulas: ['X = R × (100 - l) / l']
+      },
+      'metre-bridge-combination': {
+        title: '3. Series & Parallel Combination',
+        category: 'Current Electricity',
+        desc: 'Verify the theoretical laws of equivalent resistance for series and parallel configurations using a metre bridge.',
+        file: 'metre-bridge-combination.html',
+        objectives: ['Verify Series Law: Rs = R1 + R2', 'Verify Parallel Law: 1/Rp = 1/R1 + 1/R2'],
+        formulas: ['Series: Rs = R1 + R2', 'Parallel: Rp = (R1 × R2) / (R1 + R2)']
+      },
+      'concave-mirror': {
+        title: '4. Concave Mirror Focal Length',
+        category: 'Ray Optics',
+        desc: 'Simulate object distance (u) and image distance (v) tracking to determine concave mirror focal length.',
+        file: 'concave-mirror.html',
+        objectives: ['Track real image formation', 'Calculate focal length f'],
+        formulas: ['Mirror Formula: 1/f = 1/v + 1/u']
+      },
+      'convex-lens': {
+        title: '5. Convex Lens Focal Length',
+        category: 'Ray Optics',
+        desc: 'Determine focal length of a convex optical lens by plotting u vs v and 1/u vs 1/v graph lines.',
+        file: 'convex-lens.html',
+        objectives: ['Plot u-v curves', 'Extract focal length from intercepts'],
+        formulas: ['Lens Formula: 1/f = 1/v - 1/u']
+      },
+      'p-n-junction-diode': {
+        title: '6. P-N Junction Diode',
+        category: 'Electronics',
+        desc: 'Explore semiconductor diode behaviour under forward and reverse bias conditions.',
+        file: 'p-n-junction-diode.html',
+        objectives: ['Identify knee voltage', 'Observe reverse breakdown curve'],
+        formulas: ['Diode Current: I = I0 × (e^(qV/nkT) - 1)']
+      },
+      'pn-diode': {
+        title: '6. P-N Junction Diode',
+        category: 'Electronics',
+        desc: 'Explore semiconductor diode behaviour under forward and reverse bias conditions.',
+        file: 'p-n-junction-diode.html',
+        objectives: ['Identify knee voltage', 'Observe reverse breakdown curve'],
+        formulas: ['Diode Current: I = I0 × (e^(qV/nkT) - 1)']
+      },
+      'pn-junction-diode': {
+        title: '6. P-N Junction Diode',
+        category: 'Electronics',
+        desc: 'Explore semiconductor diode behaviour under forward and reverse bias conditions.',
+        file: 'p-n-junction-diode.html',
+        objectives: ['Identify knee voltage', 'Observe reverse breakdown curve'],
+        formulas: ['Diode Current: I = I0 × (e^(qV/nkT) - 1)']
+      },
+      'screw-gauge': {
+        title: '7. Screw Gauge Tool',
+        category: 'Additional Tools',
+        desc: 'Interactive 3D micrometer screw gauge to practice least count, pitch, and zero error correction.',
+        file: 'screw-gauge.html',
+        objectives: ['Measure wire diameter', 'Determine Pitch and Least Count'],
+        formulas: ['Least Count = Pitch / Total Circular Scale Divisions']
+      }
+    };
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    const params = new URLSearchParams(window.location.search);
+    const expId = params.get('id');
+    const data = expData[expId] || expData['wire-resistivity'];
 
-    for (let i = 0; i < 35; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        radius: Math.random() * 2 + 1,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: (Math.random() - 0.5) * 0.8
-      });
-    }
+    document.getElementById('expTitle').innerText = data.title;
+    document.getElementById('expCategory').innerText = data.category;
+    document.getElementById('expDesc').innerText = data.desc;
+    document.getElementById('graphicTitle').innerText = data.title + ' Simulation';
+    document.getElementById('launchBtn').href = data.file;
 
-    function animatePhysics() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#0284c7';
-      ctx.strokeStyle = 'rgba(2, 132, 199, 0.15)';
-
-      particles.forEach((p, index) => {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        for (let j = index + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (dist < 130) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        }
-      });
-      requestAnimationFrame(animatePhysics);
-    }
-    animatePhysics();
-
-    let activeCategory = 'all';
-    function switchTab(category, btnElement) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      btnElement.classList.add('active');
-      activeCategory = category;
-      filterLabs();
-    }
-
-    function filterLabs() {
-      const query = document.getElementById('searchInput').value.toLowerCase();
-      document.querySelectorAll('.card').forEach(card => {
-        const title = card.getAttribute('data-title').toLowerCase();
-        const category = card.getAttribute('data-category');
-        const matchesSearch = title.includes(query);
-        const matchesCategory = (activeCategory === 'all' || category === activeCategory);
-        card.style.display = (matchesSearch && matchesCategory) ? "flex" : "none";
-      });
-    }
+    document.getElementById('expObjectives').innerHTML = data.objectives.map(o => `<li>${o}</li>`).join('');
+    document.getElementById('expFormulas').innerHTML = data.formulas.map(f => `<li>${f}</li>`).join('');
   </script>
 </body>
 </html>
